@@ -132,6 +132,9 @@ Based on this practical outline, I recommend the theory sessions focus on buildi
   * Heterogeneity testing (e.g., Cochran’s Q).
   
 
+## References:
+https://pubmed.ncbi.nlm.nih.gov/32760811/
+https://academic.oup.com/hmg/article/23/R1/R89/2900899
 
 
 
