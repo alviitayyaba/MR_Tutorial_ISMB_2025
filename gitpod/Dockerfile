@@ -20,5 +20,5 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install R packages
-COPY install_packages.R /tmp/install_packages.R
+COPY gitpod/install_packages.R /tmp/install_packages.R
 RUN Rscript /tmp/install_packages.R
