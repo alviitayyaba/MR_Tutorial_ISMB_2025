@@ -1,4 +1,5 @@
 install.packages(c(
+  "remotes",           # Needed for install_github
   "TwoSampleMR",
   "MRInstruments",
   "tidyverse",
@@ -10,8 +11,10 @@ install.packages(c(
   "dplyr"
 ), repos = "https://cloud.r-project.org")
 
-# Install from GitHub if needed:
+# Install PLINK helper package
 if (!requireNamespace("genetics.binaRies", quietly = TRUE)) {
-  install.packages("remotes", repos = "https://cloud.r-project.org")
   remotes::install_github("MRCIEU/genetics.binaRies")
 }
+
+# Optional: Download PLINK binary if needed
+genetics.binaRies::get_plink_binary()

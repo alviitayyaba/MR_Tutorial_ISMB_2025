@@ -1,4 +1,4 @@
-FROM rocker/rstudio:latest
+FROM rocker/rstudio:4.3.2
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -14,11 +14,15 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libtiff5-dev \
     libjpeg-dev \
-    plink1.9 \
+    libboost-all-dev \
+    zlib1g-dev \
     wget \
     curl \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install R packages
+# Copy R package installation script
 COPY gitpod/install_packages.R /tmp/install_packages.R
+
+# Install R packages
 RUN Rscript /tmp/install_packages.R
