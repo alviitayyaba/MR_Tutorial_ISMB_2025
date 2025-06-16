@@ -1,16 +1,15 @@
 image:
+
   file: gitpod/Dockerfile
 
-tasks:
-  - name: Start RStudio
-    init: echo "Gitpod environment initializing..."
-    command: |
-      echo "Visit the RStudio tab once the container is ready."
+
 
 ports:
   - port: 8787
     onOpen: open-preview
-
+tasks:
+  - init: echo "RStudio Server starting..."
+    command: |
+      sudo rstudio-server start
 vscode:
   extensions:
-    - RDebugger.r-debugger
