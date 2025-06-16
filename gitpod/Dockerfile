@@ -22,6 +22,11 @@ RUN apt-get update && apt-get install -y \
 RUN wget https://download2.rstudio.org/server/bionic/amd64/rstudio-server-2023.06.1-524-amd64.deb && \
     gdebi -n rstudio-server-2023.06.1-524-amd64.deb && \
     rm rstudio-server-2023.06.1-524-amd64.deb
+# Install PLINK 1.9 manually
+RUN wget http://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20210606.zip && \
+    unzip plink_linux_x86_64_20210606.zip -d /usr/local/bin && \
+    chmod +x /usr/local/bin/plink && \
+    rm plink_linux_x86_64_20210606.zip
 
 # Allow passwordless login
 RUN echo "auth-none=1" >> /etc/rstudio/rserver.conf
