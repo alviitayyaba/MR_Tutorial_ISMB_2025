@@ -1,11 +1,12 @@
 image:
-  file: Dockerfile
+  file: .gitpod.Dockerfile
+
+tasks:
+  - init: |
+      sudo service rstudio-server start
+      echo "RStudio server started"
+  - command: sleep infinity
 
 ports:
   - port: 8787
     onOpen: open-preview
-
-tasks:
-  - name: Start RStudio Server
-    command: |
-      sudo rstudio-server start
