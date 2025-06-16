@@ -1,15 +1,11 @@
 image:
-
-  file: gitpod/Dockerfile
-
-
+  file: Dockerfile
 
 ports:
   - port: 8787
     onOpen: open-preview
+
 tasks:
-  - init: echo "RStudio Server starting..."
-    command: |
+  - name: Start RStudio Server
+    init: |
       sudo rstudio-server start
-vscode:
-  extensions:
