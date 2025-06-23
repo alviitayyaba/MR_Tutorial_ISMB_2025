@@ -1,4 +1,5 @@
 .DS_Store
+data/gwas_catalogue
 .RData
 .Renviron
 .Rhistory
