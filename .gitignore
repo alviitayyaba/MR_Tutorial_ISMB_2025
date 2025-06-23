@@ -1,2 +1,7 @@
 .DS_Store
-
+.RData
+.Renviron
+.Rhistory
+MR_Tutorial_ISMB2025.Rproj
+data/1kg.v3
+.Rproj.user
