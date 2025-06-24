@@ -101,24 +101,26 @@ This part investigates the causal cascade from IL-6 signaling to coronary heart 
 3. **IL-6 → CHD**: Results suggest a potential causal role for IL-6 in CHD risk, but pleiotropy and heterogeneity must be considered.
 4. **IL6R → CHD**: Provides a druggable link; may support IL6R-targeting interventions like tocilizumab.
 
----
 # Harmonize and clump
 ```{r}
 dat <- harmonise_data(exposure_dat = exposure, outcome_dat = outcome)
 clump <- ld_clump(
-   dplyr::tibble(rsid=dat$SNP, pval=dat$pval.exposure, id=dat$exposure),
-   pop = "EUR",
-   plink_bin = genetics.binaRies::get_plink_binary(),
-   bfile = "data/1kg.v3/EUR"
+  dplyr::tibble(rsid=dat$SNP, pval=dat$pval.exposure, id=dat$exposure),
+  clump_kb = 1000,
+  clump_r2 = 0.01,
+  clump_p = 0.99,
+  pop = "EUR",
+  opengwas_jwt = get_opengwas_jwt(),
+  bfile = NULL,
+  plink_bin = NULL
 )
-
 harm_clump <- merge(dat, clump, by.x = c("SNP", "pval.exposure", "exposure"), by.y = c("rsid", "pval", "id")) %>% unique()
 ```
 
 # 1. MR Analysis of CRP on CHD
 
 Let's test whether CRP levels have a causal effect on coronary heart disease.
-
+---
 ```{r}
 res <- mr(harm_clump, method_list = c("mr_egger_regression", "mr_ivw"))
 res
@@ -145,8 +147,6 @@ p3
 - Do we observe a causal effect of CRP on CHD?
 - Are the MR assumptions violated based on pleiotropy and heterogeneity tests?
 
----
-
 # 2. MR Analysis of IL-6 on CHD
 
 Let's test whether IL-6 levels are causally associated with CHD risk.
@@ -164,7 +164,7 @@ exposure <- read_exposure_data(
   pval_col = "p_value"
 )
 exposure$exposure <- "IL-6"
-exposure <- exposure %>% filter(pval.exposure < 5*10^-6)
+exposure <- exposure %>% filter(pval.exposure < 5*10^-8)
 
 outcome <- read_outcome_data(
   snps = exposure$SNP,
@@ -212,8 +212,6 @@ p2_il6
 **Exercise:**
 - Is IL-6 likely to be causally associated with CHD?
 - How consistent are the results across MR methods?
-
----
 
 # 3. MR Analysis of IL6R on CRP
 
@@ -277,8 +275,6 @@ p2_il6
 - Is there evidence that IL6R variants causally affect CRP levels?
 - Does this support IL6R as an upstream regulator of inflammation?
 
----
-
 # 4. MR Analysis of IL6R on CHD
 
 Finally, let's test whether IL6R levels have a causal effect on CHD.
@@ -341,7 +337,6 @@ p2_il6
 - Do IL6R variants predict CHD risk?
 - Would this support therapeutic targeting of IL6R (e.g., using tocilizumab)?
 
----
 
 These results suggest that **targeting IL6R** may influence CHD risk through inflammatory pathways without CRP being a causal intermediary. This has direct implications for drug repurposing and therapeutic targeting.
 

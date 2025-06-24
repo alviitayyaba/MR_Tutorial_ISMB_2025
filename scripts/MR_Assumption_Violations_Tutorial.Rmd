@@ -3,8 +3,7 @@ title: "Mendelian Randomization: Demonstrating Assumption Violations with Toy Da
 output: html_document
 ---
 
-This tutorial demonstrates how Mendelian Randomization (MR) results can be biased when its core assumptions are violated. Each section introduces a potential violation and how to detect or mitigate it using simulated data. Use this as a step-by-step hands-on session.
-
+This tutorial demonstrates how Mendelian Randomization (MR) results can be biased when its core assumptions are violated. Each section introduces a potential violation and how to detect or mitigate it using simulated data. 
 ## Setup
 
 ```{r setup, include=FALSE}
@@ -69,20 +68,20 @@ ggplot(exposure_gwas, aes(x = pos, y = logp, color = as.factor(CHR))) +
   theme_bw()
 ```
 
-## Exercise 1: Look at the Manhattan plot. How many SNPs are genome-wide significant?
+##Exercise 1: Look at the Manhattan plot. How many SNPs are genome-wide significant?
 
 ```{r Exercise 1}
 sum(exposure_gwas$pval < 5e-8)
 ```
-## Part 2: LD Clumping and Independence
 
-Explain LD clumping and simulate it by keeping only SNPs on different chromosomes.
+---
+
+## Part 2: LD Clumping and Independence
 
 ```r
 # Simulated LD clumping: Keep one SNP per chromosome
 
 # Note: This is a simplified approach to approximate LD clumping. In real GWAS datasets, linkage disequilibrium (LD) is based on correlation between SNPs due to their physical proximity on the genome. Clumping typically removes SNPs that are in high LD (e.g., r^2 > 0.01) within a given window (e.g., 10,000 kb). By keeping only one SNP per chromosome here, we ensure independence in a naive way, which is sufficient for toy examples but does not reflect the finer structure of LD in real data.
-## Part 2: No Pleiotropy (MR Assumptions Hold)
 ```
 ```{r part2-LD-clumping}
 exposure_gwas_clumped <- exposure_gwas %>% group_by(CHR) %>% slice_min(pval.exposure, n = 1) %>% ungroup()
@@ -96,10 +95,14 @@ ggplot(combined, aes(x = factor(CHR), y = -log10(pval.exposure), color = type)) 
        title = "SNP p-values before and after simplified LD clumping") +
   theme_bw()
 ```
+
 ##Exercise 2: Why do we keep only one SNP per chromosome here? What assumptions are we making?
 
 We assume that SNPs on different chromosomes are independent (no LD across chromosomes). Keeping one SNP per chromosome mimics removing correlated SNPs in LD within chromosomes, a simplified version of clumping.
-## Part 4: Harmonization and Palindromic SNPs
+
+---
+
+## Part 3: Harmonization and Palindromic SNPs
 
 ```{r part4-mr-no-pleiotropy}
 # Simulate outcome data
@@ -110,38 +113,49 @@ outcome_gwas$other_allele.outcome[palindromic] <- "T"
 
 # Harmonize
 harmonized <- harmonise_data(exposure_gwas_clumped, outcome_gwas)
+mr_results <- mr(harmonized, method_list = c("mr_ivw", "mr_egger_regression"))
+pleio_test <- mr_pleiotropy_test(harmonized)
+print(mr_results)
+print(pleio_test)
+mr_scatter_plot(mr_results, harmonized )
 ```
+
 ##Exercise 3: Identify palindromic SNPs. How are they handled during harmonization?
 
-## Part 5: Invalid Instruments & Weak Instrument Bias
+---
+
+## Part 4: Invalid Instruments & Weak Instrument Bias
 
 ```{r part5-Weak Instrument Bias}
 # Introduce weak instruments
 # Note: SNPs with high p-values for exposure association (e.g., > 0.05) are considered weak instruments.
 # Weak instruments explain very little variance in the exposure and can lead to biased or imprecise MR estimates,
 # particularly in small sample sizes or when using methods assuming strong instruments.
+# Simulate all weak instruments
 exposure_gwas_weak <- exposure_gwas_clumped
-exposure_gwas_weak$beta.exposure[1:3] <- 0.001
-exposure_gwas_weak$pval.exposure[1:3] <- 0.8
+exposure_gwas_weak$beta.exposure <- rnorm(nrow(exposure_gwas_weak), 0, 0.08)
+exposure_gwas_weak$se.exposure <- rep(0.05, nrow(exposure_gwas_weak))
+exposure_gwas_weak$pval.exposure <- 2 * pnorm(-abs(exposure_gwas_weak$beta.exposure / exposure_gwas_weak$se.exposure))
 
 # Harmonize
 harm_weak <- harmonise_data(exposure_gwas_weak, outcome_gwas)
-
+harm_weak$F_stat <- (harm_weak$beta.exposure / harm_weak$se.exposure)^2
+summary(harm_weak$F_stat)  # Should be <10 if weak
 # MR with weak instruments
-mr_results_weak <- mr(harm_weak)
+mr_results_weak <- mr(harm_weak, method_list = c("mr_ivw", "mr_egger_regression"))
+print(mr_results_weak)
 mrobust <- mr_heterogeneity(harm_weak)
-ggplot(mr_results_weak, aes(x = b, y = method)) +
-  geom_point(size = 3) +
-  geom_errorbar(aes(xmin = b - se, xmax = b + se), width = 0.2) +
-  labs(x = "MR Method", y = "Causal Estimate", title = "MR estimates with weak instruments") +
-  theme_bw()
+print(mrobust)
+mr_scatter_plot(mr_results_weak, harm_weak)
 ```
 
 ##Exercise 4: What is the effect of weak SNPs on the MR estimate?
 Answer:
 Weak instruments have little association with the exposure, biasing MR estimates towards null and increasing uncertainty, reducing reliability and power.
+
 ---
-## Part 6: Detecting Pleiotropy
+
+## Part 5: Detecting Pleiotropy
 
 ```{r part6-Detecting Pleiotropy}
 # Introduce pleiotropy by altering outcome effects
@@ -149,16 +163,23 @@ Weak instruments have little association with the exposure, biasing MR estimates
 # violating the exclusion restriction assumption of Mendelian Randomization. One way to simulate this is by
 # artificially increasing the effect sizes of some SNPs on the outcome, independent of their effects on the exposure.
 
-outcome_gwas_pleio <- outcome_gwas
-outcome_gwas_pleio$beta.outcome[4:6] <- outcome_gwas_pleio$beta.outcome[4:6] + 0.2
+set.seed(456)
 
-harm_pleio <- harmonise_data(exposure_gwas_clumped, outcome_gwas_pleio)
+harm_pleio <- harmonise_data(exposure_gwas_clumped, outcome_gwas)
+n_snps <- nrow(harm_pleio)
 
-mr_egger <- mr(harm_pleio, method_list = c("mr_ivw","mr_egger_regression"))
-pleio_test <- mr_pleiotropy_test(harm_pleio)
-print(pleio_test)
-mr_scatter_plot(mr_egger, harm_pleio)
+#Introduce directional pleiotropy to some SNPs
+# Half of the SNPs will get a positive pleiotropic effect
+pleio_indices <- sample(1:n_snps, floor(n_snps / 2))
+harm_pleio$beta.outcome[pleio_indices] <- harm_pleio$beta.outcome[pleio_indices] + 0.2
+harm_pleio$beta.outcome[pleio_indices] <- rnorm((n_snps/2), 0, 0.01) # no causal relationship
+# run MR
+mr_results_pleio <- mr(harm_pleio, method_list = c("mr_ivw", "mr_egger_regression"))
+pleio_test_pleio <- mr_pleiotropy_test(harm_pleio)
 
+print(mr_results_pleio)
+print(pleio_test_pleio)
+mr_scatter_plot(mr_results_pleio, harm_pleio)
 ```
 
 ##Exercise 5: Use `mr_pleiotropy_test` and interpret the Egger intercept. What does a non-zero intercept indicate in terms of pleiotropy?
@@ -167,7 +188,7 @@ Answer: A significant MR-Egger intercept suggests directional horizontal pleiotr
 
 ---
 
-## Part 7: Addressing Pleiotropy via Confounder Filtering
+## Part 6: Addressing Pleiotropy via Confounder Filtering
 ```{r part7-Addressing Pleiotropy via conf}
 # Simulate confounder (BMI) associations
 bmi_gwas <- exposure_gwas_clumped
@@ -184,12 +205,6 @@ pleio_test <- mr_pleiotropy_test(harm_conf)
 mr_clean <- mr(harm_conf, , method_list = c("mr_ivw","mr_egger_regression"))
 print(pleio_test)
 mr_scatter_plot(mr_clean , harm_conf)
-ggplot(mr_clean, aes(x = b, y = method)) +
-  geom_point(size = 3) +
-  geom_errorbar(aes(xmin = b - se, xmax = b + se), width = 0.2) +
-  labs(x = "MR Method", y = "Causal Estimate",
-       title = "MR estimates after filtering confounding SNPs") +
-  theme_bw()
 ```
 
 ##Exercise 6: Does removing BMI-associated SNPs reduce pleiotropy?
