@@ -1,4 +1,5 @@
 .DS_Store
+figure/
 data/gwas_catalogue
 .RData
 .Renviron
