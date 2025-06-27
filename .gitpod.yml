@@ -1,16 +1,7 @@
-image:
-  file: gitpod/.gitpod.Dockerfile
-
 tasks:
-  - name: Start RStudio
-    init: |
-      echo "Installing R packages..."
-      Rscript gitpod/.gitpod_init.R
-    command: |
-      echo "Starting RStudio server..."
-      rserver --www-port=3000 --auth-none=1
+  - init: docker run -d -p 8787:8787 -e DISABLE_AUTH=true rocker/verse
 
+# List the ports to expose. Learn more https://www.gitpod.io/docs/config-ports/
 ports:
-  - port: 3000
-    onOpen: open-preview
-    visibility: public
+  - port: 8787
+    onOpen: open-browser
