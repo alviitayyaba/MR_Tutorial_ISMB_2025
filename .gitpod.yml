@@ -5,7 +5,7 @@ tasks:
   - name: Start RStudio
     init: |
       echo "Installing R packages..."
-      Rscript .gitpod_init.R
+      Rscript gitpod/.gitpod_init.R
     command: |
       echo "Starting RStudio server..."
       rserver --www-port=3000 --auth-none=1
