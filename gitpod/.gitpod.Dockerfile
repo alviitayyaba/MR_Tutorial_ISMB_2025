@@ -1,3 +1,3 @@
-FROM ghcr.io/rocker-org/devcontainer/tidyverse:4
+FROM ghcr.io/rocker-org/devcontainer/tidyverse:tidyverse:4.2.3
 
 EXPOSE 8787
