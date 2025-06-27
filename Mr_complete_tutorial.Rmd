@@ -14,11 +14,6 @@ library(MRInstruments)
 library(gwasglue)
 library(ggplot2)
 
-# Optional fallback if Cairo is not available
-if (requireNamespace("Cairo", quietly = TRUE)) {
-  options(bitmapType = "cairo")
-}
-
 ```
 
 # Introduction
@@ -63,7 +58,7 @@ head(exposure_data)
 ## 1.3 From Local TSV Files Using `read_exposure_data`
 ```{r}
 exposure <- read_exposure_data(
-  filename = "data/gwas_catalogue/CRP-GCST005067_sub.tsv.gz",
+  filename = "data/gwas_catalogue/CRP-GCST90029070.tsv.gz",
   sep = "\t",
   snp_col = "variant_id",
   beta_col = "beta",
@@ -106,8 +101,8 @@ This part investigates the causal cascade from IL-6 signaling to coronary heart 
 dat <- harmonise_data(exposure_dat = exposure, outcome_dat = outcome)
 clump <- ld_clump(
   dplyr::tibble(rsid=dat$SNP, pval=dat$pval.exposure, id=dat$exposure),
-  clump_kb = 1000,
-  clump_r2 = 0.01,
+  clump_kb = 10000,
+  clump_r2 = 0.001,
   clump_p = 0.99,
   pop = "EUR",
   opengwas_jwt = get_opengwas_jwt(),
@@ -143,6 +138,7 @@ p3
 # Generate report
 #mr_report(harm_clump, output_path = "figure/")
 ```
+
 **Exercise:**
 - Do we observe a causal effect of CRP on CHD?
 - Are the MR assumptions violated based on pleiotropy and heterogeneity tests?
@@ -192,26 +188,30 @@ clump <- ld_clump(
   plink_bin = NULL
 )
 harm_clump_il6 <- merge(il6_data, clump, by.x = c("SNP", "pval.exposure", "exposure"), by.y = c("rsid", "pval", "exposure")) %>% unique()
+#filter for variant rs2228145
+res_il6 <- mr_singlesnp(harm_clump_il6)
+res_il6 <- res_il6[1,] %>%
+  mutate(
+    ci.lower = b - 1.96 * se,
+    ci.upper = b + 1.96 * se
+  )
+p2 <- ggplot(res_il6, aes(x = b, y = SNP)) +
+  geom_point(size = 3, color = "steelblue") +
+  geom_errorbar(aes(xmin = ci.lower, xmax = ci.upper), width = 0.1, color = "steelblue") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(
+    title = paste0("Causal Effect of ", res_il6$exposure, " on ", res_il6$outcome),
+    x = "Causal Estimate",
+    y = "SNP"
+  ) +
+  theme_minimal(base_size = 14)
+p2
 
-res_il6 <- mr(harm_clump_il6, method_list = c("mr_egger_regression", "mr_ivw"))
-res_il6
-
-mr_heterogeneity(harm_clump_il6)
-mr_pleiotropy_test(harm_clump_il6)
-
-p1_il6 <- mr_scatter_plot(res_il6, harm_clump_il6)
-p1_il6
-
-res_single_il6 <- mr_singlesnp(harm_clump_il6)
-p2_il6 <- mr_forest_plot(res_single_il6)
-p2_il6
-
-
-#mr_report(harm_clump_il6, output_path = "figure/")
 ```
+
 **Exercise:**
 - Is IL-6 likely to be causally associated with CHD?
-- How consistent are the results across MR methods?
+
 
 # 3. MR Analysis of IL6R on CRP
 
@@ -233,7 +233,7 @@ exposure <- exposure %>% filter(pval.exposure < 5*10^-8)
 
 outcome <- read_outcome_data(
   snps = exposure$SNP,
-  filename = "data/gwas_catalogue/CRP-GCST005067.tsv.gz",
+  filename = "data/gwas_catalogue/CRP-GCST90029070.tsv.gz",
   sep = "\t",
   snp_col = "variant_id",
   beta_col = "beta",
@@ -271,6 +271,7 @@ p2_il6 <- mr_forest_plot(res_single_il6)
 p2_il6
 
 ```
+
 **Exercise:**
 - Is there evidence that IL6R variants causally affect CRP levels?
 - Does this support IL6R as an upstream regulator of inflammation?
@@ -333,6 +334,7 @@ p2_il6 <- mr_forest_plot(res_single_il6)
 p2_il6
 
 ```
+
 **Exercise:**
 - Do IL6R variants predict CHD risk?
 - Would this support therapeutic targeting of IL6R (e.g., using tocilizumab)?
