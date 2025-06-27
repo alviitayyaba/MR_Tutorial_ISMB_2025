@@ -1,5 +1,5 @@
 tasks:
-  - init: docker run -d -p 8787:8787 -e DISABLE_AUTH=true rocker/verse
+  - init: docker run -d -p 8787:8787 -e DISABLE_AUTH=true rocker/tidyverse:4.2.3
 
 # List the ports to expose. Learn more https://www.gitpod.io/docs/config-ports/
 ports:
