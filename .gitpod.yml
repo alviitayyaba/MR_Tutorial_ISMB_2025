@@ -1,7 +1,3 @@
-tasks:
-  - init: docker run -d -p 8787:8787 -e DISABLE_AUTH=true rocker/verse
-
-# List the ports to expose. Learn more https://www.gitpod.io/docs/config-ports/
 ports:
   - port: 8787
     onOpen: open-browser
