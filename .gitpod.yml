@@ -2,11 +2,15 @@ image:
   file: gitpod/.gitpod.Dockerfile
 
 tasks:
-  - init: |
-      sudo service rstudio-server start
-      echo "RStudio server started"
-  - command: sleep infinity
+  - name: Start RStudio
+    init: |
+      echo "Installing R packages..."
+      Rscript .gitpod_init.R
+    command: |
+      echo "Starting RStudio server..."
+      rserver --www-port=3000 --auth-none=1
 
 ports:
-  - port: 8787
+  - port: 3000
     onOpen: open-preview
+    visibility: public

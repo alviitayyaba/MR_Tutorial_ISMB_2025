@@ -1,34 +1,17 @@
-FROM gitpod/workspace-base:latest
+FROM rocker/rstudio:4.2.3
 
-USER root
-
-# Install R base
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    dirmngr \
-    gnupg \
-    software-properties-common \
-    wget \
-    gdebi-core \
-    libssl-dev \
     libcurl4-openssl-dev \
+    libssl-dev \
     libxml2-dev \
-    libgit2-dev
+    libgit2-dev \
+    libhdf5-dev \
+    libzstd-dev \
+    libglpk-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    && apt-get clean
 
-# Add CRAN repo and install R
-RUN wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/cran.gpg \
- && add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu jammy-cran40/" \
- && apt-get update \
- && apt-get install -y r-base
-
-# Install RStudio Server
-RUN wget https://download2.rstudio.org/server/jammy/amd64/rstudio-server-2023.06.1-524-amd64.deb && \
-    gdebi -n rstudio-server-2023.06.1-524-amd64.deb && \
-    rm rstudio-server-2023.06.1-524-amd64.deb
-
-# Create a default user (Gitpod uses "gitpod")
-RUN echo "gitpod:gitpod" | chpasswd
-
-EXPOSE 8787
-CMD ["/usr/lib/rstudio-server/bin/rserver", "--server-daemonize=0"]
-
-USER gitpod
+# Install devtools, remotes, BiocManager
+RUN R -e "install.packages(c('devtools', 'remotes', 'BiocManager'), repos='https://cloud.r-project.org')"
