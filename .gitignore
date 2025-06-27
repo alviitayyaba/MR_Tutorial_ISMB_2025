@@ -10,4 +10,5 @@ data/gwas_catalogue/CHD_GCST000998.tsv.gz
 data/gwas_catalogue/CRP-GCST005067_sub.tsv.gz
 data/gwas_catalogue/IL6R-GCST90088597.tsv.gz
 data/gwas_catalogue/CRP-GCST005067.tsv.gz
+
 .Rproj.user
