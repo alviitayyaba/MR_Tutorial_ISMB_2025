@@ -1,7 +1,16 @@
 tasks:
-  - init: docker run -d -p 8787:8787 -e DISABLE_AUTH=true rocker/tidyverse:4.2.3
+  - init: |
+      docker run -d --name rstudio -p 8787:8787 -e DISABLE_AUTH=true rocker/tidyverse:4.2.3
+      sleep 20  # give RStudio some time to start
 
-# List the ports to expose. Learn more https://www.gitpod.io/docs/config-ports/
+      # Install R packages inside the RStudio container
+      docker exec rstudio Rscript -e "install.packages(c('dplyr', 'R.utils', 'ggplot2'), repos='https://cloud.r-project.org')"
+      #docker exec rstudio Rscript -e "install.packages(c('TwoSampleMR','MRInstruments'), repos = c('https://mrcieu.r-universe.dev', 'https://cloud.r-project.org'))"
+      docker exec rstudio Rscript -e "if (!requireNamespace('devtools', quietly=TRUE)) install.packages('devtools')"
+      docker exec rstudio Rscript -e "devtools::install_github('MRCIEU/MRInstruments')"
+      docker exec rstudio Rscript -e "devtools::install_github('MRCIEU/ieugwasr')"
+      docker exec rstudio Rscript -e "devtools::install_github('MRCIEU/TwoSampleMR')"
+
 ports:
   - port: 8787
     onOpen: open-browser
