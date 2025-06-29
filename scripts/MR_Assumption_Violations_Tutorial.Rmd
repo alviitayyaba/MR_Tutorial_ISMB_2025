@@ -22,28 +22,52 @@ We simulate 100 SNPs with p-values reflecting a realistic GWAS distribution. Eff
 
 ```{r part1-simulate}
 # Simulate GWAS data for exposure
+
 set.seed(123)
 n_snps <- 100
+N <- 10000  # sample size
+
+# Simulate EAF for SNPs
+eaf <- runif(n_snps, 0.05, 0.5) 
+
+# Simulate beta.exposure 
+beta_exposure <- c(
+  rnorm(n_snps, mean = 0, sd = 0.05)
+)
+
+# Calculate SEs based on MAF and N
+se_exposure <- 1 / sqrt(2 * N * eaf * (1 - eaf))
+
+# Compute exposure Z and p-values
+z_exposure <- beta_exposure / se_exposure
+pval_exposure <- 2 * pnorm(-abs(z_exposure))
+
 exposure_gwas <- data.frame(
   SNP = paste0("rs", 1:n_snps),
-  beta.exposure = rnorm(n_snps, 0, 0.1),
-  se.exposure = rep(0.05, n_snps),
-  pval.exposure = 10^(-runif(n_snps, 1, 10)),
+  beta.exposure = beta_exposure,
+  se.exposure = se_exposure,
+  pval.exposure = pval_exposure,
   effect_allele.exposure = sample(c("A", "G"), n_snps, replace = TRUE),
   other_allele.exposure = sample(c("T", "C"), n_snps, replace = TRUE),
-  eaf.exposure = runif(n_snps, 0.01, 0.5),
+  eaf.exposure = eaf,
   id.exposure = "exposure",
   exposure = "TraitX",
   CHR = sample(1:22, n_snps, replace = TRUE),
   BP = sample(1:1e6, n_snps)
 )
 
-# For outcome, use same SNPs with noise added to beta
+# Simulate outcome beta with true causal effect
+true_causal_effect <- 0.4
+beta_outcome <- true_causal_effect * beta_exposure + rnorm(n_snps, 0, 0.02)
+se_outcome <- se_exposure  # matched for simplicity
+z_outcome <- beta_outcome / se_outcome
+pval_outcome <- 2 * pnorm(-abs(z_outcome))
+
 outcome_gwas <- data.frame(
   SNP = exposure_gwas$SNP,
-  beta.outcome = exposure_gwas$beta.exposure + rnorm(n_snps, 0, 0.05),
-  se.outcome = rep(0.05, n_snps),
-  pval.outcome = 10^(-runif(n_snps, 1, 10)),
+  beta.outcome = beta_outcome,
+  se.outcome = se_outcome,
+  pval.outcome = pval_outcome,
   effect_allele.outcome = exposure_gwas$effect_allele.exposure,
   other_allele.outcome = exposure_gwas$other_allele.exposure,
   eaf.outcome = exposure_gwas$eaf.exposure,
@@ -52,6 +76,8 @@ outcome_gwas <- data.frame(
   CHR = exposure_gwas$CHR,
   BP = exposure_gwas$BP
 )
+
+
 
 exposure_gwas <- exposure_gwas %>%
   arrange(CHR, BP) %>%
@@ -165,21 +191,39 @@ Weak instruments have little association with the exposure, biasing MR estimates
 
 set.seed(456)
 
+
 harm_pleio <- harmonise_data(exposure_gwas_clumped, outcome_gwas)
 n_snps <- nrow(harm_pleio)
+# Assign 4 SNPs as valid instruments and 18 as pleiotropic
+pleiotropic_snps <- harm_pleio$SNP[1:18]
+valid_snps <- harm_pleio$SNP[19:22]
 
-#Introduce directional pleiotropy to some SNPs
-# Half of the SNPs will get a positive pleiotropic effect
-pleio_indices <- sample(1:n_snps, floor(n_snps / 2))
-harm_pleio$beta.outcome[pleio_indices] <- harm_pleio$beta.outcome[pleio_indices] + 0.2
-harm_pleio$beta.outcome[pleio_indices] <- rnorm((n_snps/2), 0, 0.01) # no causal relationship
+# Simulate exposure effects (beta.exposure)
+harm_pleio$beta.exposure[harm_pleio$SNP %in% valid_snps] <- rnorm(4, mean = 0.1, sd = 0.05)   # valid SNPs: stronger effects
+harm_pleio$beta.exposure[harm_pleio$SNP %in% pleiotropic_snps] <- rnorm(18, mean = 0.05, sd = 0.005) # pleiotropic: weak effect
+
+# Simulate outcome effects (beta.outcome)
+causal_effect <- 0.3
+pleiotropy_effect <- rnorm(18, mean = 0.08, sd = 0.02)
+
+harm_pleio$beta.outcome[harm_pleio$SNP %in% valid_snps] <- causal_effect * harm_pleio$beta.exposure[harm_pleio$SNP %in% valid_snps] + rnorm(4, 0.001, 0.005)
+harm_pleio$beta.outcome[harm_pleio$SNP %in% pleiotropic_snps] <- pleiotropy_effect + rnorm(18, 0.1, 0.05)  # outcome driven by pleiotropy
+
 # run MR
 mr_results_pleio <- mr(harm_pleio, method_list = c("mr_ivw", "mr_egger_regression"))
 pleio_test_pleio <- mr_pleiotropy_test(harm_pleio)
 
 print(mr_results_pleio)
 print(pleio_test_pleio)
-mr_scatter_plot(mr_results_pleio, harm_pleio)
+p <- mr_scatter_plot(mr_results_pleio, harm_pleio)
+p1 <- p[[1]]
+p1$data$pleiotropic <- ifelse(p1$data$SNP %in% pleiotropic_snps, "Pleiotropic", "Non-pleiotropic")
+
+p_final <- p1 +
+  ggnewscale::new_scale_color() +
+  geom_point(aes(x = beta.exposure, y = beta.outcome, color = pleiotropic), data = p1$data, size = 2) +
+  scale_color_manual(values = c("Pleiotropic" = "red", "Non-pleiotropic" = "blue")) 
+print(p_final)
 ```
 
 ##Exercise 5: Use `mr_pleiotropy_test` and interpret the Egger intercept. What does a non-zero intercept indicate in terms of pleiotropy?

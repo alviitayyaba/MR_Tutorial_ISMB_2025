@@ -109,6 +109,14 @@ clump <- ld_clump(
   bfile = NULL,
   plink_bin = NULL
 )
+#the ld_clump function uses API to clump provided SNPs using LD information from 1kg data. If this fails to run then we can also use local plink binaries for LD reference. link: https://mrcieu.github.io/gwasglue/index.html
+#clump <- ld_clump(
+#  dplyr::tibble(rsid=dat$SNP, pval=dat$pval.exposure, id=dat$exposure),
+#  pop = "EUR",
+#  plink_bin = genetics.binaRies::get_plink_binary(),
+#  bfile = "data/1kg.v3/EUR"
+#)
+clump <- readRDS("data/clump.rds")
 harm_clump <- merge(dat, clump, by.x = c("SNP", "pval.exposure", "exposure"), by.y = c("rsid", "pval", "id")) %>% unique()
 ```
 
