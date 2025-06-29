@@ -5,11 +5,11 @@ tasks:
 
       # Install R packages inside the RStudio container
       docker exec rstudio Rscript -e "install.packages(c('dplyr', 'R.utils', 'ggplot2'), repos='https://cloud.r-project.org')"
-      docker exec rstudio Rscript -e "install.packages(c('TwoSampleMR','MRInstruments'), repos = c('https://mrcieu.r-universe.dev', 'https://cloud.r-project.org'))"
-      #docker exec rstudio Rscript -e "if (!requireNamespace('devtools', quietly=TRUE)) install.packages('devtools')"
-      #docker exec rstudio Rscript -e "devtools::install_github('MRCIEU/TwoSampleMR')"
-      #docker exec rstudio Rscript -e "devtools::install_github('MRCIEU/MRInstruments')"
-      #docker exec rstudio Rscript -e "devtools::install_github('MRCIEU/ieugwasr')"
+      #docker exec rstudio Rscript -e "install.packages(c('TwoSampleMR','MRInstruments'), repos = c('https://mrcieu.r-universe.dev', 'https://cloud.r-project.org'))"
+      docker exec rstudio Rscript -e "if (!requireNamespace('devtools', quietly=TRUE)) install.packages('devtools')"
+      docker exec rstudio Rscript -e "devtools::install_github('MRCIEU/TwoSampleMR')"
+      docker exec rstudio Rscript -e "devtools::install_github('MRCIEU/MRInstruments')"
+      docker exec rstudio Rscript -e "devtools::install_github('MRCIEU/ieugwasr')"
 
 ports:
   - port: 8787
