@@ -174,69 +174,196 @@
             
             <div class="bg-gray-100 p-4 sm:p-6 rounded-lg">
                 <!-- Strand Issues Section -->
-                <section class="mb-12">
-                    <h3 class="text-xl sm:text-2xl font-bold text-center mb-8 text-indigo-700">Part A: Resolving Strand Mismatches</h3>
-                    <div class="grid md:grid-cols-3 gap-8">
-                        
-                        <!-- Correct Case -->
-                        <div class="harmonization-card p-6 flex flex-col items-center text-center">
-                            <div class="flex-shrink-0"><svg class="icon text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
-                            <h4 class="text-lg font-semibold mt-4 mb-2">Correct & Unambiguous</h4>
-                            <p class="text-gray-600 mb-4 text-sm">Alleles match perfectly.</p>
-                            <div class="space-y-4 w-full">
-                                <div class="bg-gray-50 p-3 rounded-lg"><p class="font-semibold text-gray-700">Exposure: <span class="allele bg-blue-200 text-blue-800">A</span> / <span class="allele bg-gray-200 text-gray-700">G</span></p></div>
-                                <div class="bg-gray-50 p-3 rounded-lg"><p class="font-semibold text-gray-700">Outcome: <span class="allele bg-blue-200 text-blue-800">A</span> / <span class="allele bg-gray-200 text-gray-700">G</span></p></div>
+        <section class="mb-16">
+            <h3 class="text-2xl sm:text-3xl font-bold text-center mb-8 text-indigo-700">A. Resolving Strand Mismatches</h3>
+            <div class="grid md:grid-cols-3 gap-8">
+                
+                <!-- Correct Case -->
+                <div class="card p-6 flex flex-col items-center text-center">
+                    <div class="flex-shrink-0">
+                        <svg class="icon text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mt-4 mb-2">Correct & Unambiguous</h3>
+                    <p class="text-gray-600 mb-4 text-sm">Alleles match perfectly between exposure and outcome datasets.</p>
+                    <div class="space-y-4 w-full">
+                        <!-- Exposure -->
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="font-semibold text-gray-700">Exposure</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-blue-200 text-blue-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-gray-200 text-gray-700">G</span>
                             </div>
-                            <div class="mt-4 bg-green-100 text-green-800 text-sm font-semibold py-2 px-4 rounded-full">Action: Proceed</div>
+                            <p class="mt-2 font-mono text-sm">Effect: 0.5</p>
                         </div>
-
-                        <!-- Incorrect Reference Case -->
-                        <div class="harmonization-card p-6 flex flex-col items-center text-center">
-                            <div class="flex-shrink-0"><svg class="icon text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5" /> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9a9 9 0 0114.13-6.36M20 15a9 9 0 01-14.13 6.36" /></svg></div>
-                            <h4 class="text-lg font-semibold mt-4 mb-2">Incorrect Reference</h4>
-                            <p class="text-gray-600 mb-4 text-sm">Alleles are on the complementary strand.</p>
-                             <div class="space-y-4 w-full">
-                                <div class="bg-gray-50 p-3 rounded-lg"><p class="font-semibold text-gray-700">Exposure: <span class="allele bg-blue-200 text-blue-800">A</span> / <span class="allele bg-gray-200 text-gray-700">G</span></p></div>
-                                <div class="bg-red-50 p-3 rounded-lg"><p class="font-semibold text-red-700">Outcome: <span class="allele bg-red-200 text-red-800">T</span> / <span class="allele bg-pink-200 text-pink-800">C</span></p></div>
+                        <!-- Outcome -->
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="font-semibold text-gray-700">Outcome</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-blue-200 text-blue-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-gray-200 text-gray-700">G</span>
                             </div>
-                            <div class="mt-4 bg-orange-100 text-orange-800 text-sm font-semibold py-2 px-4 rounded-full">Action: Flip & Harmonize</div>
-                        </div>
-
-                        <!-- Ambiguous Case -->
-                        <div class="harmonization-card p-6 flex flex-col items-center text-center">
-                             <div class="flex-shrink-0"><svg class="icon text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
-                            <h4 class="text-lg font-semibold mt-4 mb-2">Ambiguous Mismatch</h4>
-                            <p class="text-gray-600 mb-4 text-sm">Alleles do not match and are not complementary.</p>
-                             <div class="space-y-4 w-full">
-                                <div class="bg-gray-50 p-3 rounded-lg"><p class="font-semibold text-gray-700">Exposure: <span class="allele bg-blue-200 text-blue-800">A</span> / <span class="allele bg-gray-200 text-gray-700">G</span></p></div>
-                                <div class="bg-red-50 p-3 rounded-lg"><p class="font-semibold text-red-700">Outcome: <span class="allele bg-blue-200 text-blue-800">A</span> / <span class="allele bg-red-200 text-red-800">C</span></p></div>
-                            </div>
-                            <div class="mt-4 bg-red-100 text-red-800 text-sm font-semibold py-2 px-4 rounded-full">Action: Remove SNP</div>
+                            <p class="mt-2 font-mono text-sm">Effect: 0.05</p>
                         </div>
                     </div>
-                </section>
-                <!-- Palindromic SNPs Section -->
-                <section>
-                    <h3 class="text-xl sm:text-2xl font-bold text-center mb-8 text-teal-700">Part B: The Palindromic SNP Problem (A/T or G/C)</h3>
-                    <div class="grid md:grid-cols-2 gap-8">
-                        
-                        <!-- Inferrable Case -->
-                        <div class="harmonization-card p-6 flex flex-col items-center text-center">
-                            <div class="flex-shrink-0"><svg class="icon text-cyan-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg></div>
-                            <h4 class="text-lg font-semibold mt-4 mb-2">Inferrable Palindrome</h4>
-                            <p class="text-gray-600 mb-4 text-sm">Allele frequencies (EAF) are informative (e.g., EAF < 0.42).</p>
-                            <div class="mt-4 bg-cyan-100 text-cyan-800 text-sm font-semibold py-2 px-4 rounded-full">Action: Infer & Harmonize</div>
-                        </div>
+                    <div class="mt-4 bg-green-100 text-green-800 text-sm font-semibold py-2 px-4 rounded-full">Action: Proceed</div>
+                </div>
 
-                        <!-- Not Inferrable Case -->
-                        <div class="harmonization-card p-6 flex flex-col items-center text-center">
-                            <div class="flex-shrink-0"><svg class="icon text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.79 4 4s-1.79 4-4 4c-1.742 0-3.223-.835-3.772-2M12 5v.01M12 19v.01M21 12h-.01M3 12h.01M17.657 6.343l-.01.01M6.343 17.657l-.01.01M17.657 17.657l-.01-.01M6.343 6.343l-.01-.01" /></svg></div>
-                            <h4 class="text-lg font-semibold mt-4 mb-2">Not Inferrable Palindrome</h4>
-                            <p class="text-gray-600 mb-4 text-sm">Allele frequencies are ambiguous (e.g., EAF ≈ 0.5).</p>
-                            <div class="mt-4 bg-red-100 text-red-800 text-sm font-semibold py-2 px-4 rounded-full">Action: Remove SNP</div>
+                <!-- Incorrect Reference Case -->
+                <div class="card p-6 flex flex-col items-center text-center">
+                    <div class="flex-shrink-0">
+                        <svg class="icon text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5" /> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9a9 9 0 0114.13-6.36M20 15a9 9 0 01-14.13 6.36" /></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mt-4 mb-2">Incorrect Reference</h3>
+                    <p class="text-gray-600 mb-4 text-sm">Alleles are on the complementary strand. They can be corrected.</p>
+                    <div class="space-y-4 w-full">
+                        <!-- Exposure -->
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="font-semibold text-gray-700">Exposure</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-blue-200 text-blue-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-gray-200 text-gray-700">G</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">Effect: 0.5</p>
+                        </div>
+                        <!-- Outcome -->
+                        <div class="bg-red-100 p-4 rounded-lg">
+                            <p class="font-semibold text-red-700">Outcome (Original)</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-red-200 text-red-800">C</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-pink-200 text-pink-800">T</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">Effect: -0.05</p>
                         </div>
                     </div>
-                </section>
+                    <div class="my-4 text-2xl text-orange-500">&darr;</div>
+                    <div class="bg-green-100 p-4 rounded-lg w-full">
+                        <p class="font-semibold text-green-800">Outcome (Corrected)</p>
+                        <p class="text-xs text-green-700 mb-2">(Alleles flipped to match exposure strand)</p>
+                        <div class="flex justify-center items-center space-x-2 mt-2">
+                            <span class="allele bg-gray-200 text-gray-700">G</span>
+                            <span class="text-gray-400">/</span>
+                            <span class="allele bg-blue-200 text-blue-800">A</span>
+                        </div>
+                        <p class="mt-2 font-mono text-sm">Effect: +0.05 <span class="text-xs">(Sign flipped)</span></p>
+                    </div>
+                    <div class="mt-4 bg-orange-100 text-orange-800 text-sm font-semibold py-2 px-4 rounded-full">Action: Flip & Harmonize</div>
+                </div>
+
+                <!-- Ambiguous Case -->
+                <div class="card p-6 flex flex-col items-center text-center">
+                     <div class="flex-shrink-0">
+                        <svg class="icon text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mt-4 mb-2">Ambiguous Mismatch</h3>
+                    <p class="text-gray-600 mb-4 text-sm">Effect alleles match, but other alleles do not. Cannot be resolved.</p>
+                     <div class="space-y-4 w-full">
+                        <!-- Exposure -->
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="font-semibold text-gray-700">Exposure</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-blue-200 text-blue-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-gray-200 text-gray-700">G</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">Effect: 0.5</p>
+                        </div>
+                        <!-- Outcome -->
+                        <div class="bg-red-100 p-4 rounded-lg">
+                            <p class="font-semibold text-red-700">Outcome</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-blue-200 text-blue-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-red-200 text-red-800 ring-2 ring-red-500">C</span>
+                            </div>
+                             <p class="mt-2 font-mono text-sm">Effect: 0.05</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 bg-red-100 text-red-800 text-sm font-semibold py-2 px-4 rounded-full">Action: Remove SNP</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Palindromic SNPs Section -->
+        <section>
+            <h3 class="text-2xl sm:text-3xl font-bold text-center mb-8 text-teal-700">B. The Palindromic SNP Problem</h3>
+            <div class="text-center max-w-2xl mx-auto mb-8">
+                <p class="text-gray-600">Palindromic SNPs have complementary alleles (A/T or G/C). This makes it hard to detect strand mismatches without more information, like allele frequency.</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8">
+                
+                <!-- Inferrable Case -->
+                <div class="card p-6 flex flex-col items-center text-center">
+                    <div class="flex-shrink-0">
+                        <svg class="icon text-cyan-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mt-4 mb-2">Inferrable Palindrome</h3>
+                    <p class="text-gray-600 mb-4 text-sm">Allele frequencies are non-ambiguous (e.g., not near 0.5) and suggest a flip.</p>
+                    <div class="space-y-4 w-full">
+                        <!-- Exposure -->
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="font-semibold text-gray-700">Exposure</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-purple-200 text-purple-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-pink-200 text-pink-800">T</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">EAF: 0.11</p>
+                        </div>
+                        <!-- Outcome -->
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="font-semibold text-gray-700">Outcome</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-purple-200 text-purple-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-pink-200 text-pink-800">T</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">EAF: 0.91</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-4 bg-cyan-50 rounded-lg w-full">
+                       <p class="text-sm text-cyan-800"><span class="font-bold">Inference:</span> Since 0.11 ≈ 1 - 0.91, the effect allele is likely different. The data is harmonized by flipping the effect sign of the outcome.</p>
+                    </div>
+                    <div class="mt-4 bg-cyan-100 text-cyan-800 text-sm font-semibold py-2 px-4 rounded-full">Action: Infer & Harmonize</div>
+                </div>
+
+                <!-- Not Inferrable Case -->
+                <div class="card p-6 flex flex-col items-center text-center">
+                    <div class="flex-shrink-0">
+                        <svg class="icon text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.79 4 4s-1.79 4-4 4c-1.742 0-3.223-.835-3.772-2M12 5v.01M12 19v.01M21 12h-.01M3 12h.01M17.657 6.343l-.01.01M6.343 17.657l-.01.01M17.657 17.657l-.01-.01M6.343 6.343l-.01-.01" /></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mt-4 mb-2">Not Inferrable Palindrome</h3>
+                    <p class="text-gray-600 mb-4 text-sm">Allele frequencies are ambiguous (near 0.5), so the correct strand is unknown.</p>
+                    <div class="space-y-4 w-full">
+                        <!-- Exposure -->
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="font-semibold text-gray-700">Exposure</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-purple-200 text-purple-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-pink-200 text-pink-800">T</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">EAF: 0.50</p>
+                        </div>
+                        <!-- Outcome -->
+                         <div class="bg-red-100 p-4 rounded-lg">
+                            <p class="font-semibold text-red-700">Outcome</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-purple-200 text-purple-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-pink-200 text-pink-800">T</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">EAF: 0.50</p>
+                        </div>
+                    </div>
+                     <div class="mt-4 p-4 bg-red-50 rounded-lg w-full">
+                       <p class="text-sm text-red-800"><span class="font-bold">Problem:</span> Impossible to determine if the effect alleles are aligned. The direction of effect is ambiguous.</p>
+                    </div>
+                    <div class="mt-4 bg-red-100 text-red-800 text-sm font-semibold py-2 px-4 rounded-full">Action: Remove SNP</div>
+                </div>
             </div>
         </section>
         
