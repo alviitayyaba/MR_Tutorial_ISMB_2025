@@ -45,15 +45,6 @@ print(mr_results)
 Based on the mr_results table, what are the causal effect estimates (b) and p-values (pval) for LDL on CAD for each of the three MR methods (IVW, MR Egger, Weighted Median)? Which methods suggest a statistically significant causal effect at 
 alpha=0.05?
 
-```{r  message=FALSE, warning=FALSE}
-# Perform MR analysis using specified methods
-mr_results <- mr(ldl_cad_fil, method_list = c("mr_egger_regression", "mr_ivw", "mr_weighted_median"))
-
-# Print the MR results
-print(mr_results)
-
-```
-
 ## Part 2: Visualizing Individual SNP Effects (Forest Plot)
 The forest plot of individual SNP effects helps visualize the consistency of the causal estimates from each genetic variant.
 

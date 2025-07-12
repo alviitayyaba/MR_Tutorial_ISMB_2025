@@ -426,28 +426,15 @@ print(mr_results)</code></pre>
 ## 2      nIf6qv     i6w0FI     CAD      LDL Inverse variance weighted   70
 ## 3      nIf6qv     i6w0FI     CAD      LDL           Weighted median   70
 ##            b         se         pval
-## 1 0.29693416 0.12317540 0.0186323166
-## 2 0.07164931 0.05452809 0.1888499131
-## 3 0.16795743 0.03964838 0.0000227361</code></pre>
+## 1 0.29693416 0.12317540 1.863232e-02
+## 2 0.07164931 0.05452809 1.888499e-01
+## 3 0.16795743 0.04027197 3.038261e-05</code></pre>
 <div id="questions-for-part-1" class="section level3">
 <h3>Questions for Part 1:</h3>
 <p>Based on the mr_results table, what are the causal effect estimates
 (b) and p-values (pval) for LDL on CAD for each of the three MR methods
 (IVW, MR Egger, Weighted Median)? Which methods suggest a statistically
 significant causal effect at alpha=0.05?</p>
-<pre class="r"><code># Perform MR analysis using specified methods
-mr_results &lt;- mr(ldl_cad_fil, method_list = c(&quot;mr_egger_regression&quot;, &quot;mr_ivw&quot;, &quot;mr_weighted_median&quot;))
-
-# Print the MR results
-print(mr_results)</code></pre>
-<pre><code>##   id.exposure id.outcome outcome exposure                    method nsnp
-## 1      nIf6qv     i6w0FI     CAD      LDL                  MR Egger   70
-## 2      nIf6qv     i6w0FI     CAD      LDL Inverse variance weighted   70
-## 3      nIf6qv     i6w0FI     CAD      LDL           Weighted median   70
-##            b         se         pval
-## 1 0.29693416 0.12317540 1.863232e-02
-## 2 0.07164931 0.05452809 1.888499e-01
-## 3 0.16795743 0.03863214 1.376298e-05</code></pre>
 </div>
 </div>
 <div id="part-2-visualizing-individual-snp-effects-forest-plot" class="section level2">
