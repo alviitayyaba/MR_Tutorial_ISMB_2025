@@ -1,7 +1,9 @@
 ---
 title: "Mendelian Randomization Tutorial: CRP, IL-6, and CHD"
 author: "Tayyaba Alvi"
-output: html_document
+output:
+  html_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -13,7 +15,9 @@ library(VariantAnnotation)
 library(MRInstruments)
 library(gwasglue)
 library(ggplot2)
-
+library(pryr)
+start_time <- Sys.time()
+mem_start <- pryr::mem_used()
 ```
 
 # Introduction
@@ -23,7 +27,7 @@ This tutorial demonstrates how to perform a Mendelian Randomization (MR) analysi
 # 1. Accessing GWAS Data from Different Sources
 
 ## 1.1 From Local VCF Files Using `gwasvcf_to_TwoSampleMR`
-```{r}
+```{r  message=FALSE, warning=FALSE}
 vcf_crp <- VariantAnnotation::readVcf("data/ieugwas/CRP_ebi-a-GCST005067_sub.vcf.gz")
 crp_exposure <- gwasvcf_to_TwoSampleMR(vcf_crp, "exposure")
 crp_exposure <- crp_exposure %>% filter(pval.exposure < 5*10^-8)
@@ -35,7 +39,7 @@ harm_data <- harmonise_data(exposure_dat = crp_exposure, outcome_dat = chd_outco
 ```
 
 ## 1.2 From MRBase API Using `MRInstruments`
-```{r}
+```{r  message=FALSE, warning=FALSE}
 vignette("MRBase")
 data(gwas_catalog)
 exposure_gwas <- subset(gwas_catalog, grepl("GCST007615", STUDY.ACCESSION) &
@@ -56,7 +60,7 @@ head(exposure_data)
 ```
 
 ## 1.3 From Local TSV Files Using `read_exposure_data`
-```{r}
+```{r  message=FALSE, warning=FALSE}
 exposure <- read_exposure_data(
   filename = "data/gwas_catalogue/CRP-GCST90029070.tsv.gz",
   sep = "\t",
@@ -97,7 +101,7 @@ This part investigates the causal cascade from IL-6 signaling to coronary heart 
 4. **IL6R → CHD**: Provides a druggable link; may support IL6R-targeting interventions like tocilizumab.
 
 # Harmonize and clump
-```{r}
+```{r  message=FALSE, warning=FALSE}
 dat <- harmonise_data(exposure_dat = exposure, outcome_dat = outcome)
 clump <- ld_clump(
   dplyr::tibble(rsid=dat$SNP, pval=dat$pval.exposure, id=dat$exposure),
@@ -116,7 +120,7 @@ clump <- ld_clump(
 #  plink_bin = genetics.binaRies::get_plink_binary(),
 #  bfile = "data/1kg.v3/EUR"
 #)
-clump <- readRDS("data/clump.rds")
+clump <- readRDS("data/clump_crp.rds")
 harm_clump <- merge(dat, clump, by.x = c("SNP", "pval.exposure", "exposure"), by.y = c("rsid", "pval", "id")) %>% unique()
 ```
 
@@ -135,13 +139,13 @@ mr_pleiotropy_test(harm_clump)
 p1 <- mr_scatter_plot(res, harm_clump)
 p1
 
-res_single <- mr_singlesnp(harm_clump)
-p2 <- mr_forest_plot(res_single)
-p2
+#res_single <- mr_singlesnp(harm_clump)
+#p2 <- mr_forest_plot(res_single)
+#p2
 
-res_loo <- mr_leaveoneout(harm_clump)
-p3 <- mr_leaveoneout_plot(res_loo)
-p3
+#res_loo <- mr_leaveoneout(harm_clump)
+#p3 <- mr_leaveoneout_plot(res_loo)
+#p3
 
 # Generate report
 #mr_report(harm_clump, output_path = "figure/")
@@ -155,7 +159,7 @@ p3
 
 Let's test whether IL-6 levels are causally associated with CHD risk.
 
-```{r}
+```{r  message=FALSE, warning=FALSE}
 exposure <- read_exposure_data(
   filename = "data/gwas_catalogue/IL6-GCST90012005_sub.tsv.gz",
   sep = "\t",
@@ -187,14 +191,15 @@ outcome$outcome <- "CHD"
 il6_data <- harmonise_data(exposure_dat = exposure, outcome_dat = outcome)
 clump <- ld_clump(
   dplyr::tibble(rsid=il6_data$SNP, pval=il6_data$pval.exposure,exposure=il6_data$exposure),
-  clump_kb = 1000,
-  clump_r2 = 0.01,
+  clump_kb = 10000,
+  clump_r2 = 0.001,
   clump_p = 0.99,
   pop = "EUR",
   opengwas_jwt = get_opengwas_jwt(),
   bfile = NULL,
   plink_bin = NULL
 )
+clump <- readRDS("data/il6_clump.rds")
 harm_clump_il6 <- merge(il6_data, clump, by.x = c("SNP", "pval.exposure", "exposure"), by.y = c("rsid", "pval", "exposure")) %>% unique()
 #filter for variant rs2228145
 res_il6 <- mr_singlesnp(harm_clump_il6)
@@ -224,7 +229,7 @@ p2
 # 3. MR Analysis of IL6R on CRP
 
 Let's test whether IL6R levels influence CRP levels.
-```{r}
+```{r  message=FALSE, warning=FALSE}
 exposure <- read_exposure_data(
   filename = "data/gwas_catalogue/IL6R-GCST90088597.tsv.gz",
   sep = "\t",
@@ -264,6 +269,7 @@ clump <- ld_clump(
   bfile = NULL,
   plink_bin = NULL
 )
+clump <- readRDS("data/il6R_crp_clump.rds")
 harm_clump_il6_crp <- merge(il6_data, clump, by.x = c("SNP", "pval.exposure", "exposure"), by.y = c("rsid", "pval", "exposure")) %>% unique()
 
 res_il6_crp <- mr(harm_clump_il6_crp, method_list = c("mr_egger_regression", "mr_ivw"))
@@ -287,7 +293,7 @@ p2_il6
 # 4. MR Analysis of IL6R on CHD
 
 Finally, let's test whether IL6R levels have a causal effect on CHD.
-```{r}
+```{r  message=FALSE, warning=FALSE}
 exposure <- read_exposure_data(
   filename = "data/gwas_catalogue/IL6R-GCST90088597.tsv.gz",
   sep = "\t",
@@ -327,6 +333,7 @@ clump <- ld_clump(
   bfile = NULL,
   plink_bin = NULL
 )
+clump <- readRDS("data/clump_il6R_chd.rds")
 harm_clump_il6R <- merge(il6R_data, clump, by.x = c("SNP", "pval.exposure", "exposure"), by.y = c("rsid", "pval", "exposure")) %>% unique()
 
 res_il6 <- mr(harm_clump_il6R, method_list = c("mr_egger_regression", "mr_ivw"))
@@ -354,3 +361,8 @@ These results suggest that **targeting IL6R** may influence CHD risk through inf
 
 This tutorial demonstrated how to conduct MR using multiple data formats (VCF, TSV, API) and data harmonization pipelines. The CRP–CHD analysis showed no evidence of a causal effect, while IL-6—upstream of CRP—demonstrated a potential causal effect on CHD, supporting the hypothesis that IL-6 may be a better intervention target.
 
+
+```{r}
+mem_end <- pryr::mem_used()
+end_time <- Sys.time()
+```
