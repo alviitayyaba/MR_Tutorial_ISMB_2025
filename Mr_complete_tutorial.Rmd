@@ -15,9 +15,6 @@ library(VariantAnnotation)
 library(MRInstruments)
 library(gwasglue)
 library(ggplot2)
-library(pryr)
-start_time <- Sys.time()
-mem_start <- pryr::mem_used()
 ```
 
 # Introduction
@@ -360,9 +357,3 @@ These results suggest that **targeting IL6R** may influence CHD risk through inf
 # Conclusion
 
 This tutorial demonstrated how to conduct MR using multiple data formats (VCF, TSV, API) and data harmonization pipelines. The CRP–CHD analysis showed no evidence of a causal effect, while IL-6—upstream of CRP—demonstrated a potential causal effect on CHD, supporting the hypothesis that IL-6 may be a better intervention target.
-
-
-```{r}
-mem_end <- pryr::mem_used()
-end_time <- Sys.time()
-```
