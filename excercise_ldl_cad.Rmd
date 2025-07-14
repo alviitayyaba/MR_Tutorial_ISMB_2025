@@ -108,12 +108,15 @@ print(p_scatter)
 
 ```
 
-### Questions for Part 6:
+### Questions for Part 5:
+Interpret the egger_intercept value and its corresponding p-value. What does this statistically tell you about the presence of directional pleiotropy?
+
 Observe the lines representing the different MR methods on the scatter plot. Which line's intercept is forced through the origin, and which is allowed to deviate? What does this illustrate about the underlying assumptions of these methods regarding pleiotropy?
+
 
 Given the heterogeneity and pleiotropy test results, which MR method's estimate (IVW, MR Egger, or Weighted Median) do you think is most reliable in this specific scenario, and why?
 
-## Part 7: Leave-One-Out Analysis
+## Part 6: Leave-One-Out Analysis
 The leave-one-out analysis identifies individual SNPs that might be disproportionately influencing the overall causal estimate.
 
 ```{r  message=FALSE, warning=FALSE}
@@ -127,7 +130,7 @@ print(p_loo_forest)
 
 ```
 
-### Questions for Part 7:
+### Questions for Part 6:
 Examine the leave-one-out plot. Are there any individual SNPs whose removal substantially changes the overall causal effect estimate?
 
 What could be the implications of an influential SNP in an MR analysis, and what steps might you consider if you identify one?

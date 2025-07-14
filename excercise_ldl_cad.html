@@ -426,9 +426,9 @@ print(mr_results)</code></pre>
 ## 2      nIf6qv     i6w0FI     CAD      LDL Inverse variance weighted   70
 ## 3      nIf6qv     i6w0FI     CAD      LDL           Weighted median   70
 ##            b         se         pval
-## 1 0.29693416 0.12317540 1.863232e-02
-## 2 0.07164931 0.05452809 1.888499e-01
-## 3 0.16795743 0.04027197 3.038261e-05</code></pre>
+## 1 0.29693416 0.12317540 0.0186323166
+## 2 0.07164931 0.05452809 0.1888499131
+## 3 0.16795743 0.03968763 0.0000231638</code></pre>
 <div id="questions-for-part-1" class="section level3">
 <h3>Questions for Part 1:</h3>
 <p>Based on the mr_results table, what are the causal effect estimates
@@ -536,8 +536,11 @@ print(p_scatter)</code></pre>
 ## attr(,&quot;split_labels&quot;)
 ##   id.exposure id.outcome
 ## 1      nIf6qv     i6w0FI</code></pre>
-<div id="questions-for-part-6" class="section level3">
-<h3>Questions for Part 6:</h3>
+<div id="questions-for-part-5" class="section level3">
+<h3>Questions for Part 5:</h3>
+<p>Interpret the egger_intercept value and its corresponding p-value.
+What does this statistically tell you about the presence of directional
+pleiotropy?</p>
 <p>Observe the lines representing the different MR methods on the
 scatter plot. Which line’s intercept is forced through the origin, and
 which is allowed to deviate? What does this illustrate about the
@@ -547,8 +550,8 @@ method’s estimate (IVW, MR Egger, or Weighted Median) do you think is
 most reliable in this specific scenario, and why?</p>
 </div>
 </div>
-<div id="part-7-leave-one-out-analysis" class="section level2">
-<h2>Part 7: Leave-One-Out Analysis</h2>
+<div id="part-6-leave-one-out-analysis" class="section level2">
+<h2>Part 6: Leave-One-Out Analysis</h2>
 <p>The leave-one-out analysis identifies individual SNPs that might be
 disproportionately influencing the overall causal estimate.</p>
 <pre class="r"><code># Perform leave-one-out analysis
@@ -566,8 +569,8 @@ print(p_loo_forest)</code></pre>
 ## attr(,&quot;split_labels&quot;)
 ##   id.exposure id.outcome
 ## 1      nIf6qv     i6w0FI</code></pre>
-<div id="questions-for-part-7" class="section level3">
-<h3>Questions for Part 7:</h3>
+<div id="questions-for-part-6" class="section level3">
+<h3>Questions for Part 6:</h3>
 <p>Examine the leave-one-out plot. Are there any individual SNPs whose
 removal substantially changes the overall causal effect estimate?</p>
 <p>What could be the implications of an influential SNP in an MR
