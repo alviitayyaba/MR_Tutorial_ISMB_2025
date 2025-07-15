@@ -1,7 +1,6 @@
 ---
 title: "Mendelian Randomization Exercise: LDL and Coronary Artery Disease (CAD) example toy data"
 author: "Tayyaba Alvi"
-date: "July 12, 2025"
 output:
   html_document:
   toc: true
@@ -29,12 +28,12 @@ ldl_cad_fil <- readRDS("data/LDL_CAD_excercise_data.rds")
 head(ldl_cad_fil)
 ```
 
-## Part 1: Performing the Core MR Analysis
-We will start by performing the primary MR analysis using several robust methods: Inverse Variance Weighted (IVW), MR Egger regression, and Weighted Median.
+## Part 1: Performing the Primary MR Analysis
+We will start by performing the primary MR analysis using Inverse Variance Weighted (IVW).
 
 ```{r  message=FALSE, warning=FALSE}
 # Perform MR analysis using specified methods
-mr_results <- mr(ldl_cad_fil, method_list = c("mr_egger_regression", "mr_ivw", "mr_weighted_median"))
+mr_results <- mr(ldl_cad_fil, method_list = c("mr_ivw"))
 
 # Print the MR results
 print(mr_results)
@@ -42,8 +41,19 @@ print(mr_results)
 ```
 
 ### Questions for Part 1:
-Based on the mr_results table, what are the causal effect estimates (b) and p-values (pval) for LDL on CAD for each of the three MR methods (IVW, MR Egger, Weighted Median)? Which methods suggest a statistically significant causal effect at 
-alpha=0.05?
+Based on the mr_results table, what are the causal effect estimate (b) and p-value (pval) for LDL on CAD for IVW?
+
+## Part 2: Assessing Heterogeneity
+Heterogeneity refers to the variation in the causal estimates across different genetic variants. Significant heterogeneity can indicate violations of the core MR assumptions.
+
+```{r  message=FALSE, warning=FALSE}
+# Perform heterogeneity test
+het <- mr_heterogeneity(ldl_cad_fil)
+
+# Print heterogeneity results
+print(het)
+
+```
 
 ## Part 2: Visualizing Individual SNP Effects (Forest Plot)
 The forest plot of individual SNP effects helps visualize the consistency of the causal estimates from each genetic variant.
@@ -63,24 +73,9 @@ Examine the forest plot of individual SNP effects. Do all SNPs show effects in t
 
 What does the spread or consistency of these individual SNP effects tell you about potential heterogeneity in our analysis?
 
-## Part 3: Assessing Heterogeneity
-Heterogeneity refers to the variation in the causal estimates across different genetic variants. Significant heterogeneity can indicate violations of the core MR assumptions.
-
-```{r  message=FALSE, warning=FALSE}
-# Perform heterogeneity test
-het <- mr_heterogeneity(ldl_cad_fil)
-
-# Print heterogeneity results
-print(het)
-
-```
-
-### Questions for Part 3:
-Interpret the Q-statistic and its p-value for both the MR Egger and IVW methods. What do these results suggest about the presence of heterogeneity in our analysis?
-
 How might significant heterogeneity affect the validity or interpretation of the Inverse Variance Weighted (IVW) method's results?
 
-## Part 4: Investigating Pleiotropy with the Funnel Plot
+## Part 3: Investigating Pleiotropy with the Funnel Plot
 The funnel plot helps to visually inspect for directional pleiotropy, which occurs when genetic variants affect the outcome through pathways other than the exposure.
 
 ```{r  message=FALSE, warning=FALSE}
@@ -90,12 +85,12 @@ print(p_funnel)
 
 ```
 
-### Questions for Part 4:
+### Questions for Part 3:
 Describe the shape of the funnel plot. Does it appear symmetrical? What might asymmetry indicate?
 
 Based on the visual evidence from the funnel plot, do you suspect the presence of directional pleiotropy? Why or why not?
 
-## Part 5: Quantifying Pleiotropy with MR Egger Intercept
+## Part 4: Quantifying Pleiotropy with MR Egger Intercept
 The MR Egger intercept test provides a statistical test for directional pleiotropy. A significant intercept suggests pleiotropy.
 
 ```{r  message=FALSE, warning=FALSE}
@@ -103,20 +98,21 @@ The MR Egger intercept test provides a statistical test for directional pleiotro
 mr_pleio <- mr_pleiotropy_test(ldl_cad_fil)
 print(mr_pleio)
 # Generate and print the scatter plot
+mr_results <- mr(ldl_cad_fil, method_list = c("mr_ivw", "mr_egger_regression"))
 p_scatter <- mr_scatter_plot(mr_results, ldl_cad_fil)
 print(p_scatter)
 
 ```
 
-### Questions for Part 5:
+### Questions for Part 4:
 Interpret the egger_intercept value and its corresponding p-value. What does this statistically tell you about the presence of directional pleiotropy?
 
 Observe the lines representing the different MR methods on the scatter plot. Which line's intercept is forced through the origin, and which is allowed to deviate? What does this illustrate about the underlying assumptions of these methods regarding pleiotropy?
 
 
-Given the heterogeneity and pleiotropy test results, which MR method's estimate (IVW, MR Egger, or Weighted Median) do you think is most reliable in this specific scenario, and why?
+Given the heterogeneity and pleiotropy test results, which MR method's estimate (IVW or MR Egger do you think is most reliable in this specific scenario, and why?
 
-## Part 6: Leave-One-Out Analysis
+## Part 5: Leave-One-Out Analysis
 The leave-one-out analysis identifies individual SNPs that might be disproportionately influencing the overall causal estimate.
 
 ```{r  message=FALSE, warning=FALSE}
@@ -130,10 +126,20 @@ print(p_loo_forest)
 
 ```
 
-### Questions for Part 6:
+### Questions for Part 5:
 Examine the leave-one-out plot. Are there any individual SNPs whose removal substantially changes the overall causal effect estimate?
 
 What could be the implications of an influential SNP in an MR analysis, and what steps might you consider if you identify one?
 
 ### Bonus Discussion Question:
  Why IVW is not significant for this case" and "If MR Egger is underpowered, would you expect weighted median to perform better in this case?".
+ 
+```{r  message=FALSE, warning=FALSE}
+
+# Generate and print the scatter plot
+mr_results <- mr(ldl_cad_fil, method_list = c("mr_ivw", "mr_egger_regression", "mr_weighted_median"))
+print(mr_results)
+p_scatter <- mr_scatter_plot(mr_results, ldl_cad_fil)
+print(p_scatter)
+
+```
