@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>An Interactive Guide to Mendelian Randomization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .font-mono {
+            font-family: 'Roboto Mono', monospace;
+        }
+        .section-card {
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .step-icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: white;
+        }
+        .plot-container {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            background-color: #f9fafb;
+        }
+        .code-block {
+            background-color: #1f2937;
+            color: #d1d5db;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            overflow-x: auto;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            border-bottom: 1px dotted black;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 220px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        /* Styles for embedded harmonization guide */
+        .harmonization-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease-in-out;
+        }
+        .harmonization-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .allele {
+            display: inline-block;
+            width: 2.5rem;
+            height: 2.5rem;
+            line-height: 2.5rem;
+            text-align: center;
+            border-radius: 0.375rem;
+            font-weight: 700;
+            font-size: 1.125rem;
+        }
+        .icon {
+            width: 2rem;
+            height: 2rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
+        
+        <header class="text-center mb-16">
+            <h1 class="text-4xl sm:text-5xl font-bold text-gray-900">A Practical Guide to Two-Sample MR</h1>
+            <p class="mt-4 text-xl text-gray-600">From GWAS Data to Causal Inference</p>
+            <p class="mt-2 text-sm text-gray-500">By Tayyaba Alvi</p>
+        </header>
+
+
+        <!-- Step 1: GWAS Data -->
+        <section class="section-card">
+            <div class="flex items-center mb-6">
+                <div class="step-icon bg-indigo-600">1</div>
+                <h2 class="text-2xl font-bold ml-4">GWAS Data for MR</h2>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="font-semibold text-lg mb-2">Key Data Sources</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        <li><a href="https://www.ebi.ac.uk/gwas/" target="_blank" class="text-indigo-600 hover:underline">GWAS Catalog</a>: A comprehensive repository of published GWAS.</li>
+                        <li><a href="https://gwas.mrcieu.ac.uk/" target="_blank" class="text-indigo-600 hover:underline">IEU OpenGWAS</a>: A massive database of harmonized summary statistics, perfect for MR.</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-lg mb-2">Essential GWAS Fields for MR</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        <li><span class="font-semibold">SNP Info:</span> SNP ID, Effect Allele (EA), Other Allele (OA)</li>
+                        <li><span class="font-semibold">Effect Info:</span> Beta, Standard Error (SE), P-value</li>
+                        <li><span class="font-semibold">Allele Freq:</span> Effect Allele Frequency (EAF)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- The MR Workflow -->
+        <section class="section-card">
+             <div class="flex items-center mb-6">
+                <div class="step-icon bg-indigo-600">2</div>
+                <h2 class="text-2xl font-bold ml-4">The Two-Sample MR Workflow</h2>
+            </div>
+            <img src="https://mrcieu.github.io/TwoSampleMR/articles/img/twosamplemr_schematic_long-01.png?raw=true" alt="A diagram showing the workflow of a Mendelian Randomization study." class="w-full rounded-lg shadow-md bg-gray-200">
+            <p class="text-xs text-center mt-2 text-gray-500">Source: mrcieu.github.io.</p>
+        </section>
+
+        <!-- Harmonization -->
+        <section class="section-card">
+            <div class="flex items-center mb-6">
+                <div class="step-icon bg-indigo-600">3</div>
+                <h2 class="text-2xl font-bold ml-4">Data Harmonization: Ensuring Consistency</h2>
+            </div>
+            <p class="mb-6 text-gray-600">This is a critical step to ensure the alleles and their effects are aligned between the exposure and outcome datasets. The <code class="font-mono bg-gray-200 p-1 rounded">harmonise_data()</code> function handles two main issues: strand mismatches and problematic palindromic SNPs.</p>
+            
+            <div class="bg-gray-100 p-4 sm:p-6 rounded-lg">
+                <!-- Strand Issues Section -->
+        <section class="mb-16">
+            <h3 class="text-2xl sm:text-3xl font-bold text-center mb-8 text-indigo-700">A. Resolving Strand Mismatches</h3>
+            <div class="grid md:grid-cols-3 gap-8">
+                
+                <!-- Correct Case -->
+                <div class="card p-6 flex flex-col items-center text-center">
+                    <div class="flex-shrink-0">
+                        <svg class="icon text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mt-4 mb-2">Correct & Unambiguous</h3>
+                    <p class="text-gray-600 mb-4 text-sm">Alleles match perfectly between exposure and outcome datasets.</p>
+                    <div class="space-y-4 w-full">
+                        <!-- Exposure -->
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="font-semibold text-gray-700">Exposure</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-blue-200 text-blue-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-gray-200 text-gray-700">G</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">Effect: 0.5</p>
+                        </div>
+                        <!-- Outcome -->
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="font-semibold text-gray-700">Outcome</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-blue-200 text-blue-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-gray-200 text-gray-700">G</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">Effect: 0.05</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 bg-green-100 text-green-800 text-sm font-semibold py-2 px-4 rounded-full">Action: Proceed</div>
+                </div>
+
+                <!-- Incorrect Reference Case -->
+                <div class="card p-6 flex flex-col items-center text-center">
+                    <div class="flex-shrink-0">
+                        <svg class="icon text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5" /> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9a9 9 0 0114.13-6.36M20 15a9 9 0 01-14.13 6.36" /></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mt-4 mb-2">Incorrect Reference</h3>
+                    <p class="text-gray-600 mb-4 text-sm">Alleles are on the complementary strand. They can be corrected.</p>
+                    <div class="space-y-4 w-full">
+                        <!-- Exposure -->
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="font-semibold text-gray-700">Exposure</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-blue-200 text-blue-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-gray-200 text-gray-700">G</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">Effect: 0.5</p>
+                        </div>
+                        <!-- Outcome -->
+                        <div class="bg-red-100 p-4 rounded-lg">
+                            <p class="font-semibold text-red-700">Outcome (Original)</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-red-200 text-red-800">C</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-pink-200 text-pink-800">T</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">Effect: -0.05</p>
+                        </div>
+                    </div>
+                    <div class="my-4 text-2xl text-orange-500">&darr;</div>
+                    <div class="bg-green-100 p-4 rounded-lg w-full">
+                        <p class="font-semibold text-green-800">Outcome (Corrected)</p>
+                        <p class="text-xs text-green-700 mb-2">(Alleles flipped to match exposure strand)</p>
+                        <div class="flex justify-center items-center space-x-2 mt-2">
+                            <span class="allele bg-gray-200 text-gray-700">G</span>
+                            <span class="text-gray-400">/</span>
+                            <span class="allele bg-blue-200 text-blue-800">A</span>
+                        </div>
+                        <p class="mt-2 font-mono text-sm">Effect: +0.05 <span class="text-xs">(Sign flipped)</span></p>
+                    </div>
+                    <div class="mt-4 bg-orange-100 text-orange-800 text-sm font-semibold py-2 px-4 rounded-full">Action: Flip & Harmonize</div>
+                </div>
+
+                <!-- Ambiguous Case -->
+                <div class="card p-6 flex flex-col items-center text-center">
+                     <div class="flex-shrink-0">
+                        <svg class="icon text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mt-4 mb-2">Ambiguous Mismatch</h3>
+                    <p class="text-gray-600 mb-4 text-sm">Effect alleles match, but other alleles do not. Cannot be resolved.</p>
+                     <div class="space-y-4 w-full">
+                        <!-- Exposure -->
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="font-semibold text-gray-700">Exposure</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-blue-200 text-blue-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-gray-200 text-gray-700">G</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">Effect: 0.5</p>
+                        </div>
+                        <!-- Outcome -->
+                        <div class="bg-red-100 p-4 rounded-lg">
+                            <p class="font-semibold text-red-700">Outcome</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-blue-200 text-blue-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-red-200 text-red-800 ring-2 ring-red-500">C</span>
+                            </div>
+                             <p class="mt-2 font-mono text-sm">Effect: 0.05</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 bg-red-100 text-red-800 text-sm font-semibold py-2 px-4 rounded-full">Action: Remove SNP</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Palindromic SNPs Section -->
+        <section>
+            <h3 class="text-2xl sm:text-3xl font-bold text-center mb-8 text-teal-700">B. The Palindromic SNP Problem</h3>
+             <div class="plot-container">
+                <img src="https://github.com/alviitayyaba/MR_Tutorial_ISMB_2025/blob/fli-tutorial/slides/imgs/palindromic_snp.png?raw=true" alt="" class="w-full rounded-lg bg-gray-200">
+            </div>
+            <div class="grid md:grid-cols-2 gap-8">
+                
+                <!-- Inferrable Case -->
+                <div class="card p-6 flex flex-col items-center text-center">
+                    <div class="flex-shrink-0">
+                        <svg class="icon text-cyan-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mt-4 mb-2">Inferrable Palindrome</h3>
+                    <p class="text-gray-600 mb-4 text-sm">Allele frequencies are non-ambiguous (e.g., not near 0.5) and suggest a flip.</p>
+                    <div class="space-y-4 w-full">
+                        <!-- Exposure -->
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="font-semibold text-gray-700">Exposure</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-purple-200 text-purple-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-pink-200 text-pink-800">T</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">EAF: 0.11</p>
+                        </div>
+                        <!-- Outcome -->
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="font-semibold text-gray-700">Outcome</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-purple-200 text-purple-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-pink-200 text-pink-800">T</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">EAF: 0.91</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-4 bg-cyan-50 rounded-lg w-full">
+                       <p class="text-sm text-cyan-800"><span class="font-bold">Inference:</span> Since 0.11 ≈ 1 - 0.91, the effect allele is likely different. The data is harmonized by flipping the effect sign of the outcome.</p>
+                    </div>
+                    <div class="mt-4 bg-cyan-100 text-cyan-800 text-sm font-semibold py-2 px-4 rounded-full">Action: Infer & Harmonize</div>
+                </div>
+
+                <!-- Not Inferrable Case -->
+                <div class="card p-6 flex flex-col items-center text-center">
+                    <div class="flex-shrink-0">
+                        <svg class="icon text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.79 4 4s-1.79 4-4 4c-1.742 0-3.223-.835-3.772-2M12 5v.01M12 19v.01M21 12h-.01M3 12h.01M17.657 6.343l-.01.01M6.343 17.657l-.01.01M17.657 17.657l-.01-.01M6.343 6.343l-.01-.01" /></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mt-4 mb-2">Not Inferrable Palindrome</h3>
+                    <p class="text-gray-600 mb-4 text-sm">Allele frequencies are ambiguous (near 0.5), so the correct strand is unknown.</p>
+                    <div class="space-y-4 w-full">
+                        <!-- Exposure -->
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="font-semibold text-gray-700">Exposure</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-purple-200 text-purple-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-pink-200 text-pink-800">T</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">EAF: 0.50</p>
+                        </div>
+                        <!-- Outcome -->
+                         <div class="bg-red-100 p-4 rounded-lg">
+                            <p class="font-semibold text-red-700">Outcome</p>
+                            <div class="flex justify-center items-center space-x-2 mt-2">
+                                <span class="allele bg-purple-200 text-purple-800">A</span>
+                                <span class="text-gray-400">/</span>
+                                <span class="allele bg-pink-200 text-pink-800">T</span>
+                            </div>
+                            <p class="mt-2 font-mono text-sm">EAF: 0.50</p>
+                        </div>
+                    </div>
+                     <div class="mt-4 p-4 bg-red-50 rounded-lg w-full">
+                       <p class="text-sm text-red-800"><span class="font-bold">Problem:</span> Impossible to determine if the effect alleles are aligned. The direction of effect is ambiguous.</p>
+                    </div>
+                    <div class="mt-4 bg-red-100 text-red-800 text-sm font-semibold py-2 px-4 rounded-full">Action: Remove SNP</div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Clumping -->
+        <section class="section-card">
+            <div class="flex items-center mb-6">
+                <div class="step-icon bg-indigo-600">4</div>
+                <h2 class="text-2xl font-bold ml-4">Instrument Selection: Clumping for Independence</h2>
+            </div>
+            <p class="mb-4 text-gray-600">
+                Genetic instruments (SNPs) must be independent. We use a process called <strong class="tooltip">LD Clumping<span class="tooltiptext">Linkage Disequilibrium (LD) clumping removes SNPs that are highly correlated, ensuring each instrument provides independent information.</span></strong> to select the most significant SNP in a region and remove others in high LD with it. The <code class="font-mono bg-gray-200 p-1 rounded">ld_clump()</code> function handles this.
+            </p>
+            <div class="plot-container">
+                <h3 class="font-semibold text-lg mb-2 text-center">Manhattan Plot: Visualizing GWAS Hits</h3>
+                <img src="https://raw.githubusercontent.com/alviitayyaba/MR_Tutorial_ISMB_2025/refs/heads/fli-tutorial/slides/imgs/ld_plo.png" alt="A Manhattan plot showing GWAS results and LD clumping." class="w-full rounded-lg bg-gray-200">
+                <p class="text-xs text-center mt-2 text-gray-500">Clumping ensures that the selected instruments (green circles) are not correlated due to LD.</p>
+            </div>
+        </section>
+
+        <!-- MR Plots -->
+        <section class="section-card">
+            <div class="flex items-center mb-6">
+                <div class="step-icon bg-indigo-600">5</div>
+                <h2 class="text-2xl font-bold ml-4">Interpreting MR Results & Plots</h2>
+            </div>
+            <div class="grid md:grid-cols-1 gap-8">
+                <!-- Scatter Plot -->
+                <div class="plot-container">
+                    <h3 class="font-semibold text-lg mb-2 text-center">Scatter Plot</h3>
+                    <img src="https://raw.githubusercontent.com/alviitayyaba/MR_Tutorial_ISMB_2025/refs/heads/fli-tutorial/slides/imgs/scatter_plot_example.png" alt="An MR scatter plot." class="w-full rounded-lg bg-gray-200">
+                    <p class="text-sm mt-2 text-gray-600"><strong class="text-gray-800">What it shows:</strong> The relationship between the SNP effects on the exposure vs. the outcome. The slope of the line is the causal estimate.</p>
+                </div>
+                <!-- Forest Plot -->
+                <div class="plot-container">
+                    <h3 class="font-semibold text-lg mb-2 text-center">Forest Plot</h3>
+                    <img src="https://raw.githubusercontent.com/alviitayyaba/MR_Tutorial_ISMB_2025/refs/heads/fli-tutorial/slides/imgs/mr_forest_plot_example.png" alt="An MR forest plot." class="w-full rounded-lg bg-gray-200">
+                     <p class="text-sm mt-2 text-gray-600"><strong class="text-gray-800">What it shows:</strong> The causal effect estimated by each individual SNP. The combined estimate (e.g., IVW) is shown at the bottom.</p>
+                </div>
+                <!-- Leave-One-Out Plot -->
+                <div class="plot-container">
+                    <h3 class="font-semibold text-lg mb-2 text-center">Leave-One-Out Plot</h3>
+                    <img src="https://raw.githubusercontent.com/alviitayyaba/MR_Tutorial_ISMB_2025/refs/heads/fli-tutorial/slides/imgs/mr_loo_plot.png" alt="An MR leave-one-out plot." class="w-full rounded-lg bg-gray-200">
+                     <p class="text-sm mt-2 text-gray-600"><strong class="text-gray-800">What it shows:</strong> Checks if a single SNP is driving the overall result. If all points are consistent, the finding is robust.</p>
+                </div>
+                <!-- Funnel Plot -->
+                <div class="plot-container">
+                    <h3 class="font-semibold text-lg mb-2 text-center">Funnel Plot</h3>
+                    <img src="https://raw.githubusercontent.com/alviitayyaba/MR_Tutorial_ISMB_2025/refs/heads/fli-tutorial/slides/imgs/mr_funnel_plot_example.png" alt="An MR funnel plot." class="w-full rounded-lg bg-gray-200">
+                     <p class="text-sm mt-2 text-gray-600"><strong class="text-gray-800">What it shows:</strong> Used to visually inspect for heterogeneity and potential <strong class="tooltip">directional pleiotropy<span class="tooltiptext">Directional pleiotropy occurs when genetic variants affect the outcome through pathways other than the exposure, which can bias MR results.</span></strong>. A symmetrical plot is expected.</p>
+                </div>
+            </div>
+        </section>
+         <!-- NEW CASE STUDY SECTION -->
+        <section class="section-card">
+            <div class="flex items-center mb-6">
+                <div class="step-icon bg-green-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold ml-4">Case Study: The IL-6, CRP, & CHD Paradox</h2>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div>
+                    <h3 class="font-semibold text-lg mb-2">The Observational Puzzle</h3>
+                    <p class="text-gray-700 mb-4">For years, observational studies have shown a strong correlation: higher levels of C-Reactive Protein (CRP), a marker of inflammation, are associated with a higher risk of Coronary Heart Disease (CHD).</p>
+                    <p class="text-gray-700 font-bold mb-4 text-center text-xl">↑ CRP  → ↑ CHD ?</p>
+                    <h3 class="font-semibold text-lg mb-2">The Motivation for MR</h3>
+                    <p class="text-gray-700">This raises critical questions that MR is uniquely positioned to answer:</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 mt-2">
+                        <li>Is this relationship truly causal?</li>
+                        <li>Or is CRP just a bystander, confounded by other factors?</li>
+                        <li>Should we target CRP, or an upstream driver like Interleukin-6 (IL-6)?</li>
+                    </ul>
+                </div>
+                <div class="plot-container">
+                    <h3 class="font-semibold text-lg mb-2 text-center">IL-6 Signaling & CRP Production</h3>
+                    <img src="https://github.com/alviitayyaba/MR_Tutorial_ISMB_2025/blob/fli-tutorial/slides/imgs/IL-6_signalling.png?raw=true" alt="A diagram showing the IL-6 signaling pathway leading to CRP production. It illustrates both classic signaling in hepatocytes and trans-signaling in endothelial cells." class="w-full rounded-lg">
+                    <p class="text-xs text-center mt-2 text-gray-500">IL-6 is a key upstream driver of CRP production through classic and trans-signaling pathways.</p>
+                </div>
+            </div>
+        </section>
+        <!-- R Packages -->
+        <section class="section-card">
+            <div class="flex items-center mb-6">
+                <h2 class="text-2xl font-bold ml-4">Setting Up Your R Environment</h2>
+            </div>
+            <p class="mb-4 text-gray-600">Now, let's test this hypothesis. The <code class="font-mono bg-gray-200 p-1 rounded">TwoSampleMR</code> package is your primary tool. Here are the essential libraries you'll need:</p>
+            <div class="code-block font-mono">
+                <span class="text-purple-400">library</span>(TwoSampleMR)<br>
+                <span class="text-purple-400">library</span>(ieugwasr)<br>
+                <span class="text-purple-400">library</span>(VariantAnnotation)<br>
+                <span class="text-purple-400">library</span>(MRInstruments)<br>
+                <span class="text-purple-400">library</span>(gwasglue)<br>
+                <span class="text-purple-400">library</span>(dplyr)<br>
+                <span class="text-purple-400">library</span>(ggplot2)
+            </div>
+        </section>
+
+        <!-- Conclusion -->
+        <footer class="text-center mt-12">
+             <div class="section-card">
+                <h2 class="text-2xl font-bold text-indigo-700 mb-4">You're Ready to Perform MR!</h2>
+                <p class="text-lg text-gray-600">
+                    You now have a foundational understanding of the steps, tools, and interpretation needed for a Two-Sample Mendelian Randomization analysis.
+                </p>
+                 <div class="mt-8">
+                    <svg class="mx-auto h-12 w-auto text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5l.415-.207a.75.75 0 011.085.67V10.5m0 0h6m-6 0a.75.75 0 001.085.67l.415-.207M3 12a9 9 0 1018 0 9 9 0 00-18 0z" />
+                    </svg>
+                    <h3 class="mt-4 text-xl font-bold tracking-tight text-gray-900">Questions?</h3>
+                </div>
+            </div>
+        </footer>
+        <!-- Feedback Slide-->
+        <section class="section-card">
+            <div class="grid md:grid-cols-1 gap-8 items-center">
+                <div class="plot-container">
+                    <img src="https://github.com/alviitayyaba/MR_Tutorial_ISMB_2025/blob/fli-tutorial/slides/imgs/Last%20Slide%20for%20all%20Tutorials.png?raw=true" alt="Feedback Slide" class="w-full rounded-lg">
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>
