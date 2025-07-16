@@ -26,13 +26,18 @@ ldl_cad_fil <- readRDS("data/LDL_CAD_excercise_data.rds")
 
 # Display the first few rows of the harmonised data to understand its structure
 head(ldl_cad_fil)
-
+# Positive allele coding for exposure beta
+ldl_cad_fil <- ldl_cad_fil %>%
+  mutate(
+    beta.outcome  = ifelse(beta.exposure < 0, -beta.outcome, beta.outcome),
+    beta.exposure = abs(beta.exposure)
+  )
 # Plot exposure and outcome effects 
 ggplot(ldl_cad_fil, aes( x = beta.exposure, y = beta.outcome)) +
   geom_point() +
-  geom_vline(xintercept = 0) +
-  geom_hline(yintercept = 0) +
-  theme_bw()
+  geom_errorbar(aes(ymin = beta.outcome - se.outcome, ymax = beta.outcome + se.outcome)) +
+  geom_errorbar(aes(xmin = beta.exposure - se.exposure, xmax = beta.exposure + se.exposure)) +
+  geom_hline(yintercept = 0) 
 
 ```
 
@@ -139,7 +144,7 @@ Examine the leave-one-out plot. Are there any individual SNPs whose removal subs
 
 What could be the implications of an influential SNP in an MR analysis, and what steps might you consider if you identify one?
 
-Would there be another method more appropriate incase when there is heterogeneity or presence of influential SNP?
+Would there be another method more appropriate incase there is heterogeneity or presence of influential SNP?
  
 ```{r  message=FALSE, warning=FALSE}
 
