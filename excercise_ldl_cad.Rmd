@@ -30,6 +30,8 @@ head(ldl_cad_fil)
 # Plot exposure and outcome effects 
 ggplot(ldl_cad_fil, aes( x = beta.exposure, y = beta.outcome)) +
   geom_point() +
+  geom_errorbar(aes(ymin = beta.outcome - se.outcome, ymax = beta.outcome + se.outcome)) +
+  geom_errorbar(aes(xmin = beta.exposure - se.exposure, xmax = beta.exposure + se.exposure)) +
   geom_vline(xintercept = 0) +
   geom_hline(yintercept = 0) +
   theme_bw()
