@@ -45,6 +45,7 @@ exposure_gwas <- exposure_gwas[exposure_gwas$pval < 5*10^-8, ]
 exposure_data <- format_data(exposure_gwas)
 head(exposure_data)
 
+# The new update requires authentication through accsess token. More details at https://mrcieu.github.io/ieugwasr/articles/guide.html#authentication
 # Check available outcomes
 #ao <- available_outcomes()
 #head(ao)
@@ -136,13 +137,13 @@ mr_pleiotropy_test(harm_clump)
 p1 <- mr_scatter_plot(res, harm_clump)
 p1
 
-#res_single <- mr_singlesnp(harm_clump)
-#p2 <- mr_forest_plot(res_single)
-#p2
+res_single <- mr_singlesnp(harm_clump)
+p2 <- mr_forest_plot(res_single)
+p2
 
-#res_loo <- mr_leaveoneout(harm_clump)
-#p3 <- mr_leaveoneout_plot(res_loo)
-#p3
+res_loo <- mr_leaveoneout(harm_clump)
+p3 <- mr_leaveoneout_plot(res_loo)
+p3
 
 # Generate report
 #mr_report(harm_clump, output_path = "figure/")
@@ -351,6 +352,53 @@ p2_il6
 - Do IL6R variants predict CHD risk?
 - Would this support therapeutic targeting of IL6R (e.g., using tocilizumab)?
 
+
+# 5: Reverse Causality: CHD -> IL6R
+
+```{r  message=FALSE, warning=FALSE}
+exposure <- read_exposure_data(
+  filename = "data/gwas_catalogue/CHD_GCST000998.tsv.gz",
+  sep = "\t",
+  snp_col = "variant_id",
+  beta_col = "beta",
+  se_col = "standard_error",
+  effect_allele_col = "effect_allele",
+  other_allele_col = "other_allele",
+  eaf_col = "effect_allele_frequency",
+  pval_col = "p_value"
+)
+exposure$exposure <- "CHD"
+exposure <- exposure %>% filter(pval.exposure < 5*10^-8)
+
+outcome <- read_outcome_data(
+  snps = exposure$SNP,
+  filename = "data/gwas_catalogue/IL6R-GCST90088597.tsv.gz",
+  sep = "\t",
+  snp_col = "variant_id",
+  beta_col = "beta",
+  se_col = "standard_error",
+  effect_allele_col = "effect_allele",
+  other_allele_col = "other_allele",
+  eaf_col = "effect_allele_frequency",
+  pval_col = "p_value"
+)
+outcome$outcome <- "IL6-R"
+dat <- harmonise_data(exposure_dat = exposure, outcome_dat = outcome)
+clump <- ld_clump(
+  dplyr::tibble(rsid=dat$SNP, pval=dat$pval.exposure, id=dat$exposure),
+  pop = "EUR",
+  plink_bin = genetics.binaRies::get_plink_binary(),
+  bfile = "data/1kg.v3/EUR"
+)
+
+harm_clump <- merge(dat, clump, by.x = c("SNP", "pval.exposure", "exposure"), by.y = c("rsid", "pval", "id")) %>% unique()
+res <- mr(harm_clump, method_list = c("mr_egger_regression", "mr_ivw"))
+res
+p1 <- mr_scatter_plot(res, harm_clump)
+p1
+mr_heterogeneity(harm_clump)
+mr_pleiotropy_test(harm_clump)
+```
 
 These results suggest that **targeting IL6R** may influence CHD risk through inflammatory pathways without CRP being a causal intermediary. This has direct implications for drug repurposing and therapeutic targeting.
 
