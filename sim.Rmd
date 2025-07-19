@@ -1,0 +1,902 @@
+---
+title: "MR Simulations"
+output: html_document
+date: "2025-07-20"
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+library(dplyr)
+library(stats)
+library(metafor)
+library(ggplot2)
+library(shinyWidgets)
+library(tidyr)
+```
+
+# Model
+
+This notebook simulates a two-sample MR study by generating individual-level data for two non-overlapping samples and then calculating the requiorange summary statistics. The models below are based on those from Bowden et al. (2015).
+
+The simulation includes an unobserved confounder $C_i$, an exposure $X_i$, and an outcome $Y_i$ for each individual $i$. The genotype $G_{ij}$ is a vector of genetic variants for individual $i$ and variant $j$. $G_{ij}\in \{0,1,2\}$ is generated from a binomial distribution with a minor allele frequency of 0.3.
+
+**Confounder model**
+
+$$
+C_i = \sum_{j=1}^{J} \phi_j G_{ij} + \varepsilon_i^C
+$$
+
+where
+
+-   $\phi_j$ is the strength of the correlated pleiotropy - Under InSIDE (no correlated pleiotropy), $\phi_j = 0$.
+-   Under correlated pleiotropy, $\phi_j \sim \operatorname{Uniform}(0, 0.5)$.
+-   $\varepsilon_i^C$ is a random error drawn from a standard normal distribution.
+
+**Exposure model**
+
+$$
+X_i = \sum_{j=1}^{J} \gamma_j G_{ij} + C_i + \varepsilon_{i}^{X}
+$$
+
+where
+
+-   $\gamma_j \sim \operatorname{Uniform}(0.5, 2\, \bar \gamma - 0.5)$ is the strength of the association between the genetic variant and the exposure.
+-   $\bar \gamma$ is the average instrument strength.
+-   $\varepsilon_{i}^{X}$ is a random error drawn from a standard normal distribution.
+
+**Outcome model**
+
+$$
+Y_i = \beta X_i + \sum_{j=1}^{J} \pi_j \alpha_j G_{ij} + C_i + \varepsilon_{i}^{Y}
+$$
+
+where
+
+-   $\beta$ is the true effect size of the exposure on the outcome.
+-   $\pi_j \sim \operatorname{Bernoulli}(p_{\text{pleio}})$ determines if variant $j$ is a pleiotropic variant with probability $p_\text{pleio}$.
+-   $\alpha_j$ is the strength of the pleiotropic effect of variant $j$ on the outcome.
+    -   Under no pleiotropy (valid IVs), $\alpha_j = 0$.
+    -   Under balanced pleiotropy, $\alpha_j \sim \operatorname{Uniform}(-0.2, 0.2)$.
+    -   Under directional pleiotropy, $\alpha_j \sim \operatorname{Uniform}(0, 0.2)$.
+-   $\varepsilon_{i}^{Y}$ is a random error drawn from a standard normal distribution.
+
+**Generating individual level data**
+
+To approximate the two-sample MR setting we generate two data sets of participant genotypes as follows:
+
+-   Generate matrices $G_1$ and $G_2$.
+-   Generate confounder vectors $C_1$ and $C_2$.
+-   Generate exposure vectors $X_1$ and $X_2$.
+-   Generate outcome vector $Y_2$.
+
+**Estimating GWAS coefficients**
+
+Finally we estimate GWAS coefficients for each of the samples. Let $G[:, j]$ denote the $j$th column of matrix G, then we get the SNP-trait associations as follows:
+
+-   Sample 1: For each SNP $j$, estimate its SNP-exposure association as $\hat \gamma_j = \operatorname{lm}(X_1 \sim G_1[:, j])$.
+-   Sample 2: For each SNP $j$, estimate its SNP-outcome association as $\hat \Gamma_j = \operatorname{lm}(Y_2 \sim G_2[:, j])$.
+
+# Simulation code setup
+
+```{r code-setup, echo=TRUE}
+
+# --- Simulation Parameters ---
+J <- 20 # Number of SNPs to simulate
+N <- 1000 # Individuals in exposure sample
+MAF <- 0.3 # Minor Allele Frequency
+MEAN_GAMMA <- 3 # Mean of gamma (SNP effects on exposure)
+BETA <- 0.05 # True causal effect of X on Y
+P_PLEIO <- 0.3 # Proportion of pleiotropic SNPs
+
+
+# Function to estimate SNP coefficients using OLS
+estimate_coefficients <- function(G, trait) {
+  results_list <- list()
+
+  for (j in 1:ncol(G)) {
+    df_snp <- data.frame(snp = G[, j], trait = trait)
+    
+    # Use lm for linear regression
+    model <- lm(trait ~ snp, data = df_snp)
+    
+    # Extract coefficients, standard errors, and p-values
+    c <- coef(model)["snp"]
+    std_err <- summary(model)$coefficients["snp", "Std. Error"]
+    p_value <- summary(model)$coefficients["snp", "Pr(>|t|)"]
+    
+    # Store the results
+    results_list[[j]] <- data.frame(
+      snp_index = j - 1, 
+      coef = c,
+      std_err = std_err,
+      p_value = p_value
+    )
+  }
+  return(do.call(rbind, results_list))
+}
+
+# Function to generate individual-level data
+generate_individual <- function(
+  beta = BETA,
+  J = J,
+  N = N,
+  maf = MAF,
+  mean_gamma = MEAN_GAMMA,
+  mean_alpha = 0,
+  is_pleiotropy = FALSE,
+  is_inside = TRUE,
+  pleio_proportion = P_PLEIO,
+  seed = NULL
+) {
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
+
+  if (is_pleiotropy) {
+    # Generate pleiotropic effects
+    alphas <- runif(J, -0.2, 0.2) + mean_alpha
+  } else {
+    alphas <- rep(0, J)
+  }
+
+  if (is_inside) {
+    phis <- rep(0, J)
+  } else {
+    phis <- runif(J, 0, 0.5)
+  }
+
+  pis <- rbinom(J, 1, pleio_proportion) # Pleiotropic SNPs
+  gammas <- runif(J, 0.5, 2 * MEAN_GAMMA - 0.5) # SNP effects on exposure
+
+  G1 <- matrix(rbinom(N * J, 2, maf), nrow = N, ncol = J)
+  G2 <- matrix(rbinom(N * J, 2, maf), nrow = N, ncol = J)
+
+  # Noise terms
+  eps_scale <- 2
+  epsilon_C <- rnorm(N, 0, eps_scale)
+  epsilon_X <- rnorm(N, 0, eps_scale)
+  epsilon_Y <- rnorm(N, 0, eps_scale)
+
+  # Confounders
+  C1 <- G1 %*% phis + epsilon_C
+  C2 <- G2 %*% phis + epsilon_C
+
+  # Exposure
+  X1 <- G1 %*% gammas + C1 + epsilon_X
+  X2 <- G2 %*% gammas + C2 + epsilon_X
+
+  # Outcome only generated from sample 2
+  Y <- beta * X2 + G2 %*% (alphas * pis) + C2 + epsilon_Y
+
+  return(list(
+    G1 = G1,
+    G2 = G2,
+    C1 = C1,
+    C2 = C2,
+    X1 = as.vector(X1), # Ensure these are vectors for lm
+    X2 = as.vector(X2),
+    Y = as.vector(Y)
+  ))
+}
+
+# Function to run the full two-sample MR simulation
+simulate_model <- function(
+  beta = BETA,
+  J = J,
+  N = N,
+  maf = MAF,
+  mean_gamma = MEAN_GAMMA,
+  mean_alpha = 0,
+  is_pleiotropy = FALSE,
+  is_inside = TRUE,
+  pleio_proportion = P_PLEIO,
+  seed = NULL
+) {
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
+
+  data <- generate_individual(
+    beta = beta,
+    J = J,
+    N = N,
+    maf = maf,
+    mean_gamma = mean_gamma,
+    mean_alpha = mean_alpha,
+    is_pleiotropy = is_pleiotropy,
+    is_inside = is_inside,
+    pleio_proportion = pleio_proportion,
+    seed = seed
+  )
+
+  gamma_hat_df <- estimate_coefficients(data$G1, data$X1)
+  Gamma_hat_df <- estimate_coefficients(data$G2, data$Y)
+
+  gamma_hat <- gamma_hat_df$coef
+  Gamma_hat <- Gamma_hat_df$coef
+  gamma_se <- gamma_hat_df$std_err
+  Gamma_se <- Gamma_hat_df$std_err
+  gamma_p <- gamma_hat_df$p_value
+  Gamma_p <- Gamma_hat_df$p_value
+
+  df_sim <- data.frame(
+    gamma_hat = gamma_hat,
+    Gamma_hat = Gamma_hat,
+    gamma_se = gamma_se,
+    Gamma_se = Gamma_se,
+    gamma_p = gamma_p,
+    Gamma_p = Gamma_p,
+    weight = 1 / (Gamma_se^2),
+    wald_ratio = Gamma_hat / gamma_hat # Wald ratio estimate
+  ) %>%
+    arrange(gamma_hat)
+
+  return(df_sim)
+}
+
+# Compute IVW estimate
+compute_ivw <- function(df_reg) {
+  # Perform weighted least squares regression
+  # Note: R's lm() with 'weights' performs WLS directly.
+  # The formula needs to be specified with the dependent variable first.
+  wls_model <- lm(Gamma_hat ~ 0 + gamma_hat, data = df_reg, weights = weight)
+  
+  # For a model without an intercept (0 + gamma_hat), the coefficient is directly gamma_hat
+  beta_ivw <- coef(wls_model)["gamma_hat"] 
+  
+  return(list(beta_ivw = beta_ivw, wls_model = wls_model))
+}
+
+# Compute Egger estimate
+compute_egger <- function(df_reg) {
+  # Perform weighted least squares regression with intercept
+  wls_model <- lm(Gamma_hat ~ gamma_hat, data = df_reg, weights = weight)
+  
+  alpha <- coef(wls_model)["(Intercept)"]
+  beta <- coef(wls_model)["gamma_hat"]
+  
+  return(list(alpha = alpha, beta = beta, wls_model = wls_model))
+}
+
+
+
+
+```
+
+Check simulation results
+
+```{r}
+# Execute the simulation and estimate coefficients
+data = simulate_model(
+  beta = BETA,
+  J = 100,
+  N = 5000,
+  maf = MAF,
+  mean_gamma = MEAN_GAMMA,
+  mean_alpha = 0,
+  is_pleiotropy = FALSE,
+  is_inside = TRUE,
+  pleio_proportion = P_PLEIO,
+  seed = NULL
+) 
+head(data)
+
+```
+
+# Simulations
+
+## IVW estimate
+
+### No pleiotropy
+
+```{r}
+### UI controls
+sliderInput("beta_slider_np", "Beta:", 
+min = 0.0, max = 0.5, value = 0.05, step = 0.01)
+
+sliderInput("J_slider_np", "J (SNPs):",
+min = 10, max = 200, value = 50, step = 1)
+
+sliderInput("N_slider_np", "N (Sample Size):", 
+min = 250, max = 10000, value = 5000, step = 250)
+
+actionButton("run_button_np", "Run Simulation (No Pleiotropy)") 
+
+## Plotting Logic
+reactive_plot_data_np <- eventReactive(input$run_button_np, {
+current_beta <- input$beta_slider_np 
+current_J <- input$J_slider_np      
+current_N <- input$N_slider_np     
+
+df_sim <- simulate_model(
+beta = current_beta,
+is_pleiotropy = FALSE,
+is_inside = TRUE,
+J = current_J,
+N = current_N,
+# Explicitly set these for this scenario as they are not controlled by sliders here
+mean_alpha = 0,
+pleio_proportion = 0
+)
+
+ivw_result <- compute_ivw(df_sim)
+beta_ivw <- ivw_result$beta_ivw
+
+df_sim$ivw <- df_sim$gamma_hat * beta_ivw
+df_sim$true <- df_sim$gamma_hat * current_beta
+
+return(df_sim)
+}, ignoreNULL = FALSE)
+
+# Render the plot with specific width and height arguments directly in renderPlot()
+renderPlot({
+df_plot <- reactive_plot_data_np()
+
+ggplot(df_plot, aes(x = gamma_hat, y = Gamma_hat)) +
+geom_point(aes(size = weight), alpha = 0.6) +
+geom_line(aes(y = ivw, color = "IVW Regression")) +
+geom_line(aes(y = true, color = "True Effect"), linetype = "dashed") +
+labs(
+title = "Scatter plot of SNP Effects (No Pleiotropy)",
+x = "SNP-exposure effect (gamma_hat)",
+y = "SNP-outcome effect (Gamma_hat)"
+) +
+scale_color_manual(
+name = "Line Type",
+values = c("IVW Regression" = "orange", "True Effect" = "black")
+) +
+theme_minimal() +
+theme(legend.position = "right",
+      legend.text = element_text(size = 18),
+      legend.title = element_text(size = 18, face = "bold"),
+      axis.title = element_text(size = 18),
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 16) 
+      )
+}, width = 800, height = 600)
+
+```
+
+### Balanced pleiotropy
+Assume all SNPs are balanced pleiotropic.
+
+```{r}
+### UI controls
+# Use shiny::sliderInput for sliders
+sliderInput("beta_slider_bp", "Beta:",
+            min = 0.0, max = 0.5, value = 0.05, step = 0.01)
+
+sliderInput("J_slider_bp", "J (SNPs):",
+            min = 10, max = 200, value = 50, step = 1)
+
+sliderInput("N_slider_bp", "N (Sample Size):",
+            min = 250, max = 10000, value = 5000, step = 250)
+
+sliderInput("mean_alpha_slider_bp", "Mean alpha:",
+            min = 0, max = 3, value = 0, step = 0.1)
+
+# Use shiny::actionButton for the "Run Simulation" button
+actionButton("run_button_bp", "Run Simulation (Balanced Pleiotropy)")
+
+## Plotting Logic
+# This reactive expression will re-run when input$run_button_bp is pressed
+reactive_plot_data_bp <- eventReactive(input$run_button_bp, {
+  current_beta <- input$beta_slider_bp
+  current_J <- input$J_slider_bp      
+  current_N <- input$N_slider_bp      
+  current_mean_alpha <- input$mean_alpha_slider_bp
+  
+  df_sim <- simulate_model(
+    beta = current_beta,
+    mean_alpha = current_mean_alpha,
+    is_pleiotropy = TRUE,
+    is_inside = TRUE,
+    pleio_proportion = 1,
+    J = current_J,
+    N = current_N
+  )
+  
+  ivw_result <- compute_ivw(df_sim)
+  beta_ivw <- ivw_result$beta_ivw
+  
+  df_sim$ivw <- df_sim$gamma_hat * beta_ivw
+  df_sim$true <- df_sim$gamma_hat * current_beta
+  
+  return(df_sim)
+}, ignoreNULL = FALSE)
+
+# Render the plot with specific width and height arguments directly in renderPlot()
+renderPlot({
+  df_plot <- reactive_plot_data_bp()
+  
+  ggplot(df_plot, aes(x = gamma_hat, y = Gamma_hat)) +
+    geom_point(aes(size = weight), alpha = 0.6) +
+    geom_line(aes(y = ivw, color = "IVW Regression")) +
+    geom_line(aes(y = true, color = "True Effect"), linetype = "dashed") +
+    labs(
+      title = "Scatter plot of SNP Effects (Balanced Pleiotropy)",
+      x = "SNP-exposure effect (gamma_hat)",
+      y = "SNP-outcome effect (Gamma_hat)"
+    ) +
+    scale_color_manual(
+      name = "Line Type",
+      values = c("IVW Regression" = "orange", "True Effect" = "black")
+    ) +
+    theme_minimal() +
+    theme(legend.position = "right",
+          legend.text = element_text(size = 18),
+          legend.title = element_text(size = 18, face = "bold"),
+          axis.title = element_text(size = 18),
+          plot.title = element_text(hjust = 0.5, face = "bold", size = 16) 
+          )
+}, width = 800, height = 600)
+```
+
+### Funnel plots
+
+```{r}
+### UI controls for Funnel Plot
+sliderInput("beta_slider_fp", "Beta:",
+            min = 0.0, max = 0.5, value = 0.05, step = 0.01)
+
+sliderInput("J_slider_fp", "J (SNPs):",
+            min = 10, max = 200, value = 50, step = 1)
+
+sliderInput("N_slider_fp", "N (Sample Size):",
+            min = 250, max = 10000, value = 5000, step = 250)
+
+sliderInput("mean_alpha_slider_fp", "Mean Alpha:",
+            min = 0.0, max = 2.0, value = 0.0, step = 0.1)
+
+sliderInput("pleio_proportion_slider_fp", "Pleiotropic Proportion:",
+            min = 0.0, max = 1.0, value = 0.0, step = 0.01)
+
+actionButton("run_button_fp", "Run Simulation (Funnel Plot)")
+
+## Plotting Logic for Funnel Plot
+reactive_funnel_plot_data <- eventReactive(input$run_button_fp, { 
+  current_beta <- input$beta_slider_fp
+  current_J <- input$J_slider_fp
+  current_N <- input$N_slider_fp
+  current_mean_alpha <- input$mean_alpha_slider_fp
+  current_pleio_proportion <- input$pleio_proportion_slider_fp
+
+  df_sim <- simulate_model(
+    beta = current_beta,
+    mean_alpha = current_mean_alpha,
+    is_pleiotropy = TRUE, 
+    is_inside = TRUE,    
+    pleio_proportion = current_pleio_proportion,
+    J = current_J,
+    N = current_N
+  )
+  
+  # Compute IVW estimate
+  ivw_result <- compute_ivw(df_sim)
+  beta_ivw <- ivw_result$beta_ivw
+  
+  # Return df_sim and beta_ivw for plotting
+  list(df_sim = df_sim, beta_ivw = beta_ivw, true_beta = current_beta)
+}, ignoreNULL = FALSE)
+
+# Render the funnel plot
+renderPlot({
+  plot_data <- reactive_funnel_plot_data()
+  df_plot <- plot_data$df_sim
+  beta_ivw <- plot_data$beta_ivw
+  true_beta <- plot_data$true_beta
+  
+  # Create the scatter plot
+  p <- ggplot(df_plot, aes(x = wald_ratio, y = gamma_hat)) +
+    geom_point(aes(size = weight), alpha = 0.6) + # Points for each SNP
+    labs(
+      title = "Funnel Plot",
+      x = "Wald ratio (beta Hat)",
+      y = "Instrument strength (gamma Hat)"
+    ) +
+    theme_minimal() +
+    theme(legend.position = "right",
+          legend.text = element_text(size = 18),
+          legend.title = element_text(size = 18, face = "bold"),
+          axis.title = element_text(size = 18),
+          plot.title = element_text(hjust = 0.5, face = "bold", size = 16)
+          )
+
+  # Add vertical lines for true beta and IVW beta
+  p <- p +
+    geom_vline(aes(xintercept = true_beta, linetype = "True Beta", color = "True Beta"),
+               size = 0.8) +
+    geom_vline(aes(xintercept = beta_ivw, linetype = "IVW Estimate", color = "IVW Estimate"),
+               size = 0.8)
+  
+  # Add text label for beta values 
+  # Calculate max values for positioning
+  max_wald_ratio <- max(df_plot$wald_ratio, na.rm = TRUE)
+  max_gamma_hat <- max(df_plot$gamma_hat, na.rm = TRUE)
+  
+  # Adjust positioning if data is very sparse or max values are near zero
+  label_y_pos <- max_gamma_hat * 0.95
+  if(label_y_pos < 0.1) label_y_pos <- 0.1
+  
+  p <- p +
+    # Define how linetypes are mapped to the labels in the legend
+    scale_linetype_manual(name = "Estimates",
+                          values = c("True Beta" = "dashed", "IVW Estimate" = "solid")) +
+    # Define how colors are mapped to the labels in the legend
+    scale_color_manual(name = "Estimates",
+                       values = c("True Beta" = "black", "IVW Estimate" = "orange")) +
+    # Hide the 'size' legend from geom_point, and ensure lines in legend are visible
+    guides(size = "none",
+           linetype = guide_legend(override.aes = list(size = 1)), # Override default linetype size in legend
+           color = guide_legend(override.aes = list(size = 1)) # Override default color size in legend
+           )
+
+  print(p)
+}, width = 800, height = 800)
+```
+
+## Egger estimate
+
+```{r egger-regression-plot-inside-violation}
+### UI controls
+# Use shiny::sliderInput for sliders
+sliderInput("beta_slider_egger_inside", "Beta:",
+            min = 0.0, max = 0.5, value = 0.05, step = 0.01)
+
+sliderInput("J_slider_egger_inside", "J (SNPs):",
+            min = 10, max = 200, value = 50, step = 1)
+
+sliderInput("N_slider_egger_inside", "N (Sample Size):",
+            min = 250, max = 10000, value = 5000, step = 250)
+
+sliderInput("mean_alpha_slider_egger_inside", "Mean Alpha:",
+            min = 0.0, max = 2.0, value = 0.0, step = 0.1)
+
+sliderInput("pleio_proportion_slider_egger_inside", "Pleiotropic Proportion:",
+            min = 0.0, max = 1.0, value = 0.3, step = 0.01)
+
+# Toggle for InSIDE assumption violation
+shinyWidgets::switchInput("is_inside_toggle_egger", "Assume InSIDE", value = TRUE, onStatus = "success", offStatus = "danger", onLabel = "Yes", offLabel = "No")
+
+
+# Button to trigger simulation and plot update
+actionButton("run_button_egger_inside", "Run Simulation (Toggle InSIDE)")
+
+## Plotting Logic
+# This reactive expression will re-run when input$run_button_egger_inside is pressed
+reactive_plot_data_egger_inside <- eventReactive(input$run_button_egger_inside, {
+  current_beta <- input$beta_slider_egger_inside
+  current_J <- input$J_slider_egger_inside
+  current_N <- input$N_slider_egger_inside
+  current_mean_alpha <- input$mean_alpha_slider_egger_inside
+  current_pleio_proportion <- input$pleio_proportion_slider_egger_inside
+  current_is_inside <- input$is_inside_toggle_egger # Read the toggle's value
+
+  df_sim <- simulate_model(
+    beta = current_beta,
+    mean_alpha = current_mean_alpha,
+    is_pleiotropy = TRUE, 
+    is_inside = current_is_inside, # <--- Use the toggle's value here
+    pleio_proportion = current_pleio_proportion,
+    J = current_J,
+    N = current_N
+  )
+  
+  # Compute IVW estimate
+  ivw_result <- compute_ivw(df_sim)
+  beta_ivw <- ivw_result$beta_ivw
+  
+  # Compute Egger estimate
+  egger_result <- compute_egger(df_sim)
+  alpha_egger <- egger_result$alpha
+  beta_egger <- egger_result$beta
+  
+  # Add regression line values and true beta line values to df_sim
+  df_sim$ivw <- df_sim$gamma_hat * beta_ivw
+  df_sim$egger <- alpha_egger + beta_egger * df_sim$gamma_hat
+  df_sim$true <- df_sim$gamma_hat * current_beta
+  
+  return(df_sim)
+}, ignoreNULL = FALSE)
+
+# Render the plot with specific width and height arguments directly in renderPlot()
+renderPlot({
+  df_plot <- reactive_plot_data_egger_inside()
+  
+  ggplot(df_plot, aes(x = gamma_hat, y = Gamma_hat)) +
+    geom_point(aes(size = weight), alpha = 0.6) +
+    geom_line(aes(y = ivw, color = "IVW Regression"), size = 0.8) +
+    geom_line(aes(y = egger, color = "Egger Regression"), size = 0.8) +
+    geom_line(aes(y = true, color = "True Effect"), linetype = "dashed", size = 0.8) +
+    labs(
+      title = "Scatter plot of SNP Effects (IVW & Egger, InSIDE Toggle)",
+      x = "SNP-exposure effect (gamma_hat)",
+      y = "SNP-outcome effect (Gamma_hat)"
+    ) +
+    scale_color_manual(
+      name = "Line Type",
+      values = c("IVW Regression" = "orange", "Egger Regression" = "steelblue", "True Effect" = "black")
+    ) +
+    scale_linetype_manual(
+      name = "Line Type",
+      values = c("IVW Regression" = "solid", "Egger Regression" = "solid", "True Effect" = "dashed"),
+      guide = FALSE
+    ) +
+    guides(size = "none") +
+    theme_minimal() +
+    theme(legend.position = "right",
+          legend.text = element_text(size = 18),
+          legend.title = element_text(size = 18, face = "bold"),
+          axis.title = element_text(size = 18),
+          plot.title = element_text(hjust = 0.5, face = "bold", size = 16) 
+          )
+}, width = 800, height = 600)
+```
+
+## Monte Carlo simulations
+
+This section provides a brief overview of the Monte Carlo (MC) simulation conducted, detailing the parameters and scenarios used. The simulation aims to evaluate the performance of Inverse Variance Weighted (IVW) and MR-Egger regression methods under various pleiotropy conditions.
+
+For each MC sample we generate individual level data and estimate SNP-exposure ($\hat \gamma$) and SNP-outcome ($\hat \Gamma$) associations.
+
+Fixed Parameters for Individual Data Generation:
+
+-   Sample Size (N): 5000 individuals per sample.
+-   MC Sample Size (M): 1000
+
+The simulation explores four distinct pleiotropy scenarios:
+
+-   Scenario A: No Pleiotropy, InSIDE
+
+-   Scenario B: Balanced Pleiotropy, InSIDE
+
+-   Scenario C: Directional Pleiotropy, InSIDE
+
+-   Scenario D: Directional Pleiotropy, InSIDE Violated
+
+The Monte Carlo simulations are performed across a grid of varying parameters:
+
+-   True Causal Effects ($\beta$): `[0.0, 0.05]`
+-   Number of Instruments (J): `[5, 20, 50, 100, 200]`
+-   Pleiotropy Scenarios: `["a", "b", "c", "d"]` (as defined above)
+
+For each individual simulation run, the following estimated parameters and their corresponding p-values are recorded:
+
+-   `pleio_scenario`
+-   `J` (Number of instruments)
+-   `beta_ivw` (Inverse Variance Weighted estimate)
+-   `beta_ivw_pvalue` (p-value for IVW estimate)
+-   `alpha_egger` (MR-Egger intercept estimate)
+-   `alpha_egger_pvalue` (p-value for Egger intercept)
+-   `beta_egger` (MR-Egger slope estimate)
+-   `beta_egger_pvalue` (p-value for Egger slope)
+-   `beta_true` (True causal effect, as set for the simulation)
+
+
+```{r}
+# Ensure 'mc_data.csv' is in your working directory or provide the full path
+df <- read.csv("mc_data.csv", stringsAsFactors = FALSE)
+head(df)
+```
+
+### Beta sampling errors and bias
+
+```{r}
+# UI for selecting true beta
+selectInput("true_beta_selector", "Select True Beta:",
+            choices = unique(df$beta_true),
+            selected = unique(df$beta_true)[1])
+
+# Reactive expression to filter data based on selected true beta
+filteorange_data <- reactive({
+  req(input$true_beta_selector) # Ensure input is available
+  df %>%
+    filter(beta_true == as.numeric(input$true_beta_selector)) %>%
+    # Pivot longer to combine IVW and Egger betas into a single column
+    pivot_longer(
+      cols = c(beta_ivw, beta_egger),
+      names_to = "Estimate_Type",
+      values_to = "Beta_Estimate"
+    ) %>%
+    mutate(
+      Estimate_Type = factor(Estimate_Type,
+                             levels = c("beta_ivw", "beta_egger"),
+                             labels = c("IVW Estimate", "Egger Estimate")),
+      J = factor(J), # Ensure J is treated as a factor for discrete x-axis
+      # Modified: Rename pleio_scenario levels for subplot titles
+      pleio_scenario = factor(pleio_scenario,
+                              levels = c("a", "b", "c", "d"),
+                              labels = c("Scenario A: No Pleiotropy, InSIDE",
+                                         "Scenario B: Balanced Pleiotropy, InSIDE",
+                                         "Scenario C: Directional Pleiotropy, InSIDE",
+                                         "Scenario D: Directional Pleiotropy, InSIDE Violated"))
+    )
+})
+
+# Render the 2x2 grid of box plots
+renderPlot({
+  plot_df <- filteorange_data()
+  
+  # Get the true beta value for the selected filter
+  true_beta_val <- as.numeric(input$true_beta_selector)
+  
+  # Hardcoded y-axis limits
+  fixed_ymin <- -0.1
+  fixed_ymax <- 0.2
+
+  ggplot(plot_df, aes(x = J, y = Beta_Estimate, fill = Estimate_Type)) +
+    geom_boxplot(position = position_dodge(width = 0.8), outlier.shape = NA) + # Suppress outliers
+    # Add horizontal line for true beta
+    geom_hline(yintercept = true_beta_val, linetype = "dashed", color = "black", size = 0.8,
+               aes(group = 1)) + # Use group=1 to apply to all facets
+    facet_wrap(~ pleio_scenario, scales = "fixed", ncol = 2) + # Fixed y-axis scale across facets
+    labs(
+      title = paste0("Beta Estimates by Scenario and J (True Beta = ", input$true_beta_selector, ")"),
+      x = "Number of SNPs (J)",
+      y = "Beta Estimate",
+      fill = "Estimation Method"
+    ) +
+    scale_fill_manual(values = c("IVW Estimate" = "orange", "Egger Estimate" = "steelblue")) +
+    # Manually add true beta to the legend for clarity
+    scale_color_manual(name = "Reference",
+                       values = c("True Beta" = "black"),
+                       labels = c("True Beta")) +
+    guides(color = guide_legend(override.aes = list(linetype = "dashed", shape = NA))) + # Ensure legend shows dashed line
+    theme_minimal() +
+    theme(
+      legend.position = "bottom",
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+      strip.text = element_text(face = "bold", size = 14), 
+      axis.title = element_text(size = 12),
+      axis.text = element_text(size = 10), 
+      legend.title = element_text(size = 12), 
+      legend.text = element_text(size = 10), 
+      panel.spacing = unit(1.5, "lines") # Adjusts spacing between subplots
+    ) +
+    coord_cartesian(ylim = c(fixed_ymin, fixed_ymax)) # Hardcoded: Manually set y-axis limits
+}, width = 800, height = 800)
+```
+
+### Type I and type II errors
+
+Let's consider the Type I and Type II errors.
+Recall the definitions:
+
+$$
+\text{Type I error rate} = \Pr(\text{Reject } H_0 \mid H_0 \text{ true}) = \Pr(\text{p-value} < \alpha \mid \beta = 0)
+$$
+
+
+$$
+\text{Type II error rate} = \Pr(\text{Fail to reject } H_0 \mid H_1 \text{ true}) = \Pr(\text{p-value} > \alpha \mid \beta > 0)
+$$
+
+```{r}
+# UI for selecting true beta
+selectInput("error_beta_selector", "Select True Beta for Error Rates:",
+            choices = unique(df$beta_true),
+            selected = unique(df$beta_true)[1])
+
+# Hardcoded y-axis limits for error rate plot (0 to 1 for error rates/power)
+fixed_error_ymin <- 0
+fixed_error_ymax <- 1
+
+# Reactive expression to calculate Type 1 or Type 2 error rates
+error_rates_data <- reactive({
+  req(input$error_beta_selector) # Ensure input is available
+  
+  current_beta_true <- as.numeric(input$error_beta_selector)
+  alpha_level <- 0.05 # Significance level
+
+  # Filter data for the selected true beta
+  df_filtered_by_beta <- df %>% # Corrected variable name
+    filter(beta_true == current_beta_true)
+
+  # Define scenario descriptions for titles
+  scenario_descriptions <- c(
+    'a' = 'Scenario A: No Pleiotropy, InSIDE',
+    'b' = 'Scenario B: Balanced Pleiotropy, InSIDE',
+    'c' = 'Scenario C: Directional Pleiotropy, InSIDE',
+    'd' = 'Scenario D: Directional Pleiotropy, InSIDE Violated'
+  )
+
+  # Calculate error rates
+  error_data_list <- list()
+  for (scenario_key in names(scenario_descriptions)) {
+    for (J_val in unique(df_filtered_by_beta$J)) { # Use unique J values from the filtered data
+      df_subset <- df_filtered_by_beta %>%
+        filter(pleio_scenario == scenario_key, J == J_val)
+
+      if (nrow(df_subset) > 0) {
+        if (current_beta_true == 0) {
+          # Calculate Type 1 error (proportion of p-values < alpha)
+          error_ivw <- sum(df_subset$beta_ivw_pvalue < alpha_level) / nrow(df_subset)
+          error_egger <- sum(df_subset$beta_egger_pvalue < alpha_level) / nrow(df_subset)
+          error_type_label <- "Type 1 Error Rate"
+          reference_value <- alpha_level
+          reference_label <- paste0("Nominal α = ", alpha_level)
+        } else {
+          # Calculate Type 2 error (proportion of p-values >= alpha)
+          error_ivw <- sum(df_subset$beta_ivw_pvalue >= alpha_level) / nrow(df_subset)
+          error_egger <- sum(df_subset$beta_egger_pvalue >= alpha_level) / nrow(df_subset)
+          error_type_label <- "Type 2 Error Rate (1 - Power)"
+          reference_value <- 0.2 # Common target Type 2 error (1 - 0.8 power)
+          reference_label <- "20% Type 2 Error"
+        }
+
+        error_data_list[[length(error_data_list) + 1]] <- data.frame(
+          pleio_scenario = scenario_key,
+          J = J_val,
+          method = "IVW",
+          error_rate = error_ivw,
+          error_type_label = error_type_label,
+          reference_value = reference_value,
+          reference_label = reference_label
+        )
+        error_data_list[[length(error_data_list) + 1]] <- data.frame(
+          pleio_scenario = scenario_key,
+          J = J_val,
+          method = "Egger",
+          error_rate = error_egger,
+          error_type_label = error_type_label,
+          reference_value = reference_value,
+          reference_label = reference_label
+        )
+      }
+    }
+  }
+  
+  # Combine and factorize for plotting
+  bind_rows(error_data_list) %>%
+    mutate(
+      J = factor(J),
+      method = factor(method, levels = c("IVW", "Egger")),
+      pleio_scenario = factor(pleio_scenario,
+                              levels = names(scenario_descriptions),
+                              labels = scenario_descriptions)
+    )
+})
+
+# Render the 2x2 grid of bar plots for error rates
+renderPlot({
+  plot_df <- error_rates_data()
+  
+  # Determine plot title based on selected beta
+  plot_title_suffix <- if (as.numeric(input$error_beta_selector) == 0) {
+    "Type 1 Error Rates"
+  } else {
+    "Type 2 Error Rates" 
+  }
+  
+  ggplot(plot_df, aes(x = J, y = error_rate, fill = method)) +
+    geom_col(position = position_dodge(width = 0.7), width = 0.6) + 
+    geom_hline(aes(yintercept = reference_value, linetype = reference_label), 
+               color = "orange", size = 0.8) + 
+    facet_wrap(~ pleio_scenario, scales = "fixed", ncol = 2) +
+    labs(
+      title = paste0(plot_title_suffix, " by Number of Instruments (J) - β = ", input$error_beta_selector),
+      x = "Number of Instruments (J)",
+      y = unique(plot_df$error_type_label), # Dynamic Y-axis label
+      fill = "Estimation Method"
+    ) +
+    scale_fill_manual(values = c("IVW" = "steelblue", "Egger" = "orange")) + 
+    scale_linetype_manual(name = "Reference Line", values = "dashed") +
+    guides(linetype = guide_legend(order = 2), fill = guide_legend(order = 1)) +
+    theme_minimal() +
+    theme(
+      legend.position = "bottom",
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+      strip.text = element_text(face = "bold", size = 14), 
+      axis.title = element_text(size = 12),
+      axis.text = element_text(size = 10),
+      legend.title = element_text(size = 12),
+      legend.text = element_text(size = 10),
+      panel.spacing = unit(1.5, "lines") 
+    ) +
+    coord_cartesian(ylim = c(fixed_error_ymin, fixed_error_ymax)) + 
+    # Add value labels on top of bars
+    geom_text(aes(label = sprintf("%.3f", error_rate)), 
+              position = position_dodge(width = 0.7), 
+              vjust = -0.5, size = 3.5, color = "black")
+}, width = 800, height = 800)
+```
