@@ -45,6 +45,7 @@ exposure_gwas <- exposure_gwas[exposure_gwas$pval < 5*10^-8, ]
 exposure_data <- format_data(exposure_gwas)
 head(exposure_data)
 
+# The new update requires authentication through accsess token. More details at https://mrcieu.github.io/ieugwasr/articles/guide.html#authentication
 # Check available outcomes
 #ao <- available_outcomes()
 #head(ao)
@@ -59,7 +60,7 @@ head(exposure_data)
 ## 1.3 From Local TSV Files Using `read_exposure_data`
 ```{r  message=FALSE, warning=FALSE}
 exposure <- read_exposure_data(
-  filename = "data/gwas_catalogue/CRP-GCST90029070.tsv.gz",
+  filename = "data/gwas_catalogue/CRP_gwas_catalogue.tsv.gz",
   sep = "\t",
   snp_col = "variant_id",
   beta_col = "beta",
@@ -74,7 +75,7 @@ exposure <- exposure %>% filter(pval.exposure < 5*10^-8)
 
 outcome <- read_outcome_data(
   snps = exposure$SNP,
-  filename = "data/gwas_catalogue/CHD_GCST000998.tsv.gz",
+  filename = "data/gwas_catalogue/CHD_gwas_catalogue.tsv.gz",
   sep = "\t",
   snp_col = "variant_id",
   beta_col = "beta",
@@ -88,7 +89,7 @@ outcome$outcome <- "CHD"
 ```
 # Overview
 
-This part investigates the causal cascade from IL-6 signaling to coronary heart disease (CHD) through C-reactive protein (CRP), using Mendelian Randomization (MR). We'll test whether genetic proxies for IL-6, IL6R, and CRP are causally associated with each other and with CHD.
+This part investigates the causal cascade of IL-6 signaling,  C-reactive protein (CRP), and coronary heart disease (CHD) using Mendelian Randomization (MR). We'll test whether genetic proxies for IL-6, IL6R, and CRP are causally associated with each other and with CHD.
 
 **Summary of the cascade:**
 
@@ -136,13 +137,13 @@ mr_pleiotropy_test(harm_clump)
 p1 <- mr_scatter_plot(res, harm_clump)
 p1
 
-#res_single <- mr_singlesnp(harm_clump)
-#p2 <- mr_forest_plot(res_single)
-#p2
+res_single <- mr_singlesnp(harm_clump)
+p2 <- mr_forest_plot(res_single)
+p2
 
-#res_loo <- mr_leaveoneout(harm_clump)
-#p3 <- mr_leaveoneout_plot(res_loo)
-#p3
+res_loo <- mr_leaveoneout(harm_clump)
+p3 <- mr_leaveoneout_plot(res_loo)
+p3
 
 # Generate report
 #mr_report(harm_clump, output_path = "figure/")
@@ -158,7 +159,7 @@ Let's test whether IL-6 levels are causally associated with CHD risk.
 
 ```{r  message=FALSE, warning=FALSE}
 exposure <- read_exposure_data(
-  filename = "data/gwas_catalogue/IL6-GCST90012005_sub.tsv.gz",
+  filename = "data/gwas_catalogue/IL6-gwas_catalogue_sub.tsv.gz",
   sep = "\t",
   snp_col = "variant_id",
   beta_col = "beta",
@@ -173,7 +174,7 @@ exposure <- exposure %>% filter(pval.exposure < 5*10^-8)
 
 outcome <- read_outcome_data(
   snps = exposure$SNP,
-  filename = "data/gwas_catalogue/CHD_GCST000998.tsv.gz",
+  filename = "data/gwas_catalogue/CHD_gwas_catalogue.tsv.gz",
   sep = "\t",
   snp_col = "variant_id",
   beta_col = "beta",
@@ -217,6 +218,7 @@ p2 <- ggplot(res_il6, aes(x = b, y = SNP)) +
   theme_minimal(base_size = 14)
 p2
 
+#Strong evidence suggesting rs2228145 of the Interleukin 6 receptor (IL-6R Asp358Ala variant) is associated with a 2-fold increase in soluble IL-6R (sIL-6R) serum levels resulting in reduced IL-6-induced C-reactive protein (CRP) production and a reduced risk for coronary heart disease. 
 ```
 
 **Exercise:**
@@ -228,7 +230,7 @@ p2
 Let's test whether IL6R levels influence CRP levels.
 ```{r  message=FALSE, warning=FALSE}
 exposure <- read_exposure_data(
-  filename = "data/gwas_catalogue/IL6R-GCST90088597.tsv.gz",
+  filename = "data/gwas_catalogue/IL6R-gwas_catalogue.tsv.gz",
   sep = "\t",
   snp_col = "variant_id",
   beta_col = "beta",
@@ -243,7 +245,7 @@ exposure <- exposure %>% filter(pval.exposure < 5*10^-8)
 
 outcome <- read_outcome_data(
   snps = exposure$SNP,
-  filename = "data/gwas_catalogue/CRP-GCST90029070.tsv.gz",
+  filename = "data/gwas_catalogue/CRP_gwas_catalogue.tsv.gz",
   sep = "\t",
   snp_col = "variant_id",
   beta_col = "beta",
@@ -255,7 +257,7 @@ outcome <- read_outcome_data(
 )
 outcome$outcome <- "CRP"
 
-il6_data <- harmonise_data(exposure_dat = exposure, outcome_dat = outcome)
+il6R_data <- harmonise_data(exposure_dat = exposure, outcome_dat = outcome)
 clump <- ld_clump(
   dplyr::tibble(rsid=il6_data$SNP, pval=il6_data$pval.exposure,exposure=il6_data$exposure),
   clump_kb = 10000,
@@ -267,19 +269,19 @@ clump <- ld_clump(
   plink_bin = NULL
 )
 clump <- readRDS("data/il6R_crp_clump.rds")
-harm_clump_il6_crp <- merge(il6_data, clump, by.x = c("SNP", "pval.exposure", "exposure"), by.y = c("rsid", "pval", "exposure")) %>% unique()
+harm_clump_il6R_crp <- merge(il6R_data, clump, by.x = c("SNP", "pval.exposure", "exposure"), by.y = c("rsid", "pval", "exposure")) %>% unique()
 
-res_il6_crp <- mr(harm_clump_il6_crp, method_list = c("mr_egger_regression", "mr_ivw"))
-res_il6_crp
-mr_heterogeneity(harm_clump_il6_crp)
-mr_pleiotropy_test(harm_clump_il6_crp)
+res_il6R_crp <- mr(harm_clump_il6R_crp, method_list = c("mr_egger_regression", "mr_ivw"))
+res_il6R_crp
+mr_heterogeneity(harm_clump_il6R_crp)
+mr_pleiotropy_test(harm_clump_il6R_crp)
 
-p1_il6 <- mr_scatter_plot(res_il6_crp, harm_clump_il6_crp)
-p1_il6
+p1_il6R <- mr_scatter_plot(res_il6R_crp, harm_clump_il6R_crp)
+p1_il6R
 
-res_single_il6 <- mr_singlesnp(harm_clump_il6_crp)
-p2_il6 <- mr_forest_plot(res_single_il6)
-p2_il6
+res_single_il6R <- mr_singlesnp(harm_clump_il6R_crp)
+p2_il6R <- mr_forest_plot(res_single_il6R)
+p2_il6R
 
 ```
 
@@ -292,7 +294,7 @@ p2_il6
 Finally, let's test whether IL6R levels have a causal effect on CHD.
 ```{r  message=FALSE, warning=FALSE}
 exposure <- read_exposure_data(
-  filename = "data/gwas_catalogue/IL6R-GCST90088597.tsv.gz",
+  filename = "data/gwas_catalogue/IL6R-gwas_catalogue.tsv.gz",
   sep = "\t",
   snp_col = "variant_id",
   beta_col = "beta",
@@ -307,7 +309,7 @@ exposure <- exposure %>% filter(pval.exposure < 5*10^-8)
 
 outcome <- read_outcome_data(
   snps = exposure$SNP,
-  filename = "data/gwas_catalogue/CHD_GCST000998.tsv.gz",
+  filename = "data/gwas_catalogue/CHD_gwas_catalogue.tsv.gz",
   sep = "\t",
   snp_col = "variant_id",
   beta_col = "beta",
@@ -333,17 +335,17 @@ clump <- ld_clump(
 clump <- readRDS("data/clump_il6R_chd.rds")
 harm_clump_il6R <- merge(il6R_data, clump, by.x = c("SNP", "pval.exposure", "exposure"), by.y = c("rsid", "pval", "exposure")) %>% unique()
 
-res_il6 <- mr(harm_clump_il6R, method_list = c("mr_egger_regression", "mr_ivw"))
-res_il6
+res_il6R <- mr(harm_clump_il6R, method_list = c("mr_egger_regression", "mr_ivw"))
+res_il6R
 mr_heterogeneity(harm_clump_il6R)
 mr_pleiotropy_test(harm_clump_il6R)
 
-p1_il6 <- mr_scatter_plot(res_il6, harm_clump_il6R)
-p1_il6
+p1_il6R <- mr_scatter_plot(res_il6R, harm_clump_il6R)
+p1_il6R
 
-res_single_il6 <- mr_singlesnp(harm_clump_il6R)
-p2_il6 <- mr_forest_plot(res_single_il6)
-p2_il6
+res_single_il6R <- mr_singlesnp(harm_clump_il6R)
+p2_il6R <- mr_forest_plot(res_single_il6R)
+p2_il6R
 
 ```
 
@@ -352,8 +354,83 @@ p2_il6
 - Would this support therapeutic targeting of IL6R (e.g., using tocilizumab)?
 
 
+# 5: Reverse Causality: CHD -> IL6R
+
+```{r  message=FALSE, warning=FALSE}
+exposure <- read_exposure_data(
+  filename = "data/gwas_catalogue/CHD_gwas_catalogue.tsv.gz",
+  sep = "\t",
+  snp_col = "variant_id",
+  beta_col = "beta",
+  se_col = "standard_error",
+  effect_allele_col = "effect_allele",
+  other_allele_col = "other_allele",
+  eaf_col = "effect_allele_frequency",
+  pval_col = "p_value"
+)
+exposure$exposure <- "CHD"
+exposure <- exposure %>% filter(pval.exposure < 5*10^-8)
+
+outcome <- read_outcome_data(
+  snps = exposure$SNP,
+  filename = "data/gwas_catalogue/IL6R-gwas_catalogue.tsv.gz",
+  sep = "\t",
+  snp_col = "variant_id",
+  beta_col = "beta",
+  se_col = "standard_error",
+  effect_allele_col = "effect_allele",
+  other_allele_col = "other_allele",
+  eaf_col = "effect_allele_frequency",
+  pval_col = "p_value"
+)
+outcome$outcome <- "IL6-R"
+dat <- harmonise_data(exposure_dat = exposure, outcome_dat = outcome)
+clump <- ld_clump(
+  dplyr::tibble(rsid=dat$SNP, pval=dat$pval.exposure, id=dat$exposure),
+  pop = "EUR",
+  plink_bin = genetics.binaRies::get_plink_binary(),
+  bfile = "data/1kg.v3/EUR"
+)
+
+harm_clump <- merge(dat, clump, by.x = c("SNP", "pval.exposure", "exposure"), by.y = c("rsid", "pval", "id")) %>% unique()
+res <- mr(harm_clump, method_list = c("mr_egger_regression", "mr_ivw"))
+res
+p1 <- mr_scatter_plot(res, harm_clump)
+p1
+mr_heterogeneity(harm_clump)
+mr_pleiotropy_test(harm_clump)
+```
+
 These results suggest that **targeting IL6R** may influence CHD risk through inflammatory pathways without CRP being a causal intermediary. This has direct implications for drug repurposing and therapeutic targeting.
+
+# Add-on: Reporting MR Estimates as Odds Ratios
+
+MR effect estimates are often reported as odds ratios (OR) with confidence intervals (CI). 
+
+```{r  message=FALSE, warning=FALSE}
+# Assuming `mr_results` contains columns: method, b, se
+
+mr_results_odds <- res_il6R %>%
+  mutate(
+    OR = exp(b),
+    CI_lower = exp(b - 1.96 * se),
+    CI_upper = exp(b + 1.96 * se)
+  )
+
+# Plotting Odds Ratios with ggplot2
+ggplot(mr_results_odds, aes(x = OR, y = method)) +
+  geom_point() +
+  geom_errorbar(aes(xmin = CI_lower, xmax = CI_upper), width = 0) +
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  xlab("Odds Ratio") +
+  ylab("MR Method") +
+  theme_bw()
+
+# This plot helps visualize the causal effect of LDL on CAD across different MR methods and whether the 95% confidence intervals exclude the null (OR = 1).
+
+```
 
 # Conclusion
 
-This tutorial demonstrated how to conduct MR using multiple data formats (VCF, TSV, API) and data harmonization pipelines. The CRP–CHD analysis showed no evidence of a causal effect, while IL-6—upstream of CRP—demonstrated a potential causal effect on CHD, supporting the hypothesis that IL-6 may be a better intervention target.
+This tutorial demonstrated how to conduct MR using multiple data formats (VCF, TSV, API) and data harmonization pipelines. The CRP–CHD analysis showed no evidence of a causal effect, while IL-6—upstream of CRP—demonstrated a potential causal effect on CHD, supporting the hypothesis that IL-6 may be a better intervention target. Reverse causality check confirms that the uni-directional relationship between iL6 -> CHD.
+
