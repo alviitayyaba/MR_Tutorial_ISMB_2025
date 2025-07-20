@@ -675,7 +675,7 @@ For each individual simulation run, the following estimated parameters and their
 
 ```{r}
 # Ensure 'mc_data.csv' is in your working directory or provide the full path
-df <- read.csv("mc_data.csv", stringsAsFactors = FALSE)
+df <- read.csv("data/mc_data.csv", stringsAsFactors = FALSE)
 head(df)
 ```
 
